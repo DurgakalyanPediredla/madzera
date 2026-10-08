@@ -39,7 +39,6 @@ The database query returned one matching employee record and satisfied the authe
 - Does not test authentication tokens or session expiry.
 - Does not establish production authentication security.
 
-- 
 ### RLS-01 — Own-Organisation Employee Visibility
 
 **Status:** PASS
@@ -70,9 +69,37 @@ The synthetic database also contains Daniel Brooks, an employee belonging to Har
 - Does not establish complete tenant isolation across all database tables.
 
 
+### RLS-02 — Unlinked Identity Access Denial
+
+**Status:** PASS
+
+**Execution date:** 8 October 2026
+
+**Test file:** `004_rls_unlinked_identity.sql`
+
+**Objective:** Verify that a simulated authenticated identity without an active Madzera employee mapping cannot read records from `public.users`.
+
+**Reported SQL output:**
+
+| test_id | result | visible_employee_count |
+|---|---|---|
+| RLS-02 | PASS | 0 |
+
+**Interpretation:**
+
+The SQL assertion returned PASS. No employee records were visible to the simulated unlinked identity.
+
+This is consistent with the organisation-resolution helper returning NULL when no active employee mapping exists.
+
+**Limitations:**
+
+- The identity was simulated using PostgreSQL session claims.
+- No real Supabase login was performed for this identity.
+- The test covers SELECT access to `public.users` only.
+- It does not establish protection for other database tables or write operations.
+
 ## Pending Executable Tests
 
-- RLS-02 — Unlinked identity access denial
 - RLS-03 — Cross-organisation employee isolation
 - RLS-04 — Own-organisation customer visibility
 - RLS-05 — Cross-organisation customer isolation
