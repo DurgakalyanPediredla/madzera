@@ -168,9 +168,41 @@ The corrected test executed successfully.
 - Cross-organisation customer isolation is tested separately in RLS-05.
 - No real application login or production security assessment was performed.
 
+### RLS-05 — Cross-Organisation Customer Isolation
+
+**Status:** PASS
+
+**Execution date:** 8 October 2026
+
+**Test file:** `007_rls_customer_tenant_isolation.sql`
+
+**Objective:** Verify that Sarah Mitchell's simulated authenticated session can read NorthStar Customs customer records without gaining visibility of HarbourBridge Customs customer records.
+
+**Reported SQL output:**
+
+| test_id | result | visible_customer_count | harbourbridge_customers_visible |
+|---|---|---|---|
+| RLS-05 | PASS | 1 | 0 |
+
+**Interpretation:**
+
+The SQL assertion returned PASS.
+
+- Exactly one customer record was visible.
+- The visible record matched ABC Imports Ltd (`CUST-1001`).
+- The visible record belonged to Sarah's resolved organisation.
+- No record matching Seabrook Trading Ltd (`CUST-HB-1001`) was visible.
+
+**Limitations:**
+
+- Authentication was simulated using PostgreSQL session claims.
+- The HarbourBridge customer fixture was created separately during development; its existence was not independently checked within this executable test.
+- Only SELECT access to `public.customers` was tested.
+- This does not establish tenant isolation across all Madzera tables or write operations.
+- No real application login or production security assessment was performed.
+
 ## Pending Executable Tests
 
-- RLS-05 — Cross-organisation customer isolation
 - RLS-06 — Own-organisation case visibility
 - RLS-07 — Cross-organisation case isolation
 
