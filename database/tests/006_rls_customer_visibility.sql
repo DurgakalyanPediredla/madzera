@@ -8,8 +8,7 @@
 
 BEGIN;
 
--- Establish Sarah's authenticated identity
--- before switching to the restricted role.
+-- Establish Sarah's identity before role switching.
 SELECT set_config(
     'request.jwt.claim.sub',
     (
@@ -22,10 +21,11 @@ SELECT set_config(
 
 SET LOCAL ROLE authenticated;
 
--- Evaluate customer visibility under RLS.
+-- Verify customer visibility under RLS.
 WITH visible_customers AS (
     SELECT
-        customer_code,
+        external_customer_id,
+        name,
         organisation_id
     FROM public.customers
 )
@@ -34,7 +34,8 @@ SELECT
     CASE
         WHEN COUNT(*) = 1
          AND COUNT(*) FILTER (
-             WHERE customer_code = 'CUST-1001'
+             WHERE external_customer_id = 'CUST-1001'
+               AND name = 'ABC Imports Ltd'
          ) = 1
          AND COUNT(*) FILTER (
              WHERE organisation_id =
@@ -45,7 +46,8 @@ SELECT
     END AS result,
     COUNT(*) AS visible_customer_count,
     COUNT(*) FILTER (
-        WHERE customer_code = 'CUST-1001'
+        WHERE external_customer_id = 'CUST-1001'
+          AND name = 'ABC Imports Ltd'
     ) AS expected_customer_visible
 FROM visible_customers;
 
