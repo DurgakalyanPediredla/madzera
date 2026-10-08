@@ -201,9 +201,40 @@ The SQL assertion returned PASS.
 - This does not establish tenant isolation across all Madzera tables or write operations.
 - No real application login or production security assessment was performed.
 
+### RLS-06 — Own-Organisation Case Visibility
+
+**Status:** PASS
+
+**Execution date:** 9 October 2026
+
+**Test file:** `008_rls_case_visibility.sql`
+
+**Objective:** Verify that Sarah Mitchell's simulated authenticated session can read the expected NorthStar Customs case through PostgreSQL Row Level Security.
+
+**Reported SQL output:**
+
+| test_id | result | visible_case_count | expected_case_visible |
+|---|---|---|---|
+| RLS-06 | PASS | 1 | 1 |
+
+**Interpretation:**
+
+The SQL assertion returned PASS.
+
+- Exactly one case record was visible.
+- The visible case matched `CASE-DEMO-001`.
+- The case's organisation ID matched the organisation resolved for Sarah's simulated identity.
+
+**Limitations:**
+
+- Authentication was simulated using PostgreSQL session claims.
+- Only SELECT access to `public.cases` was tested.
+- Cross-organisation case isolation will be tested separately in RLS-07.
+- Team-based access restrictions and case write permissions remain untested.
+- No real application login or production security assessment was performed.
+
 ## Pending Executable Tests
 
-- RLS-06 — Own-organisation case visibility
 - RLS-07 — Cross-organisation case isolation
 
 ## Evidence Notes
