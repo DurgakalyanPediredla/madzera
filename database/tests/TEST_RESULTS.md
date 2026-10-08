@@ -98,9 +98,39 @@ This is consistent with the organisation-resolution helper returning NULL when n
 - The test covers SELECT access to `public.users` only.
 - It does not establish protection for other database tables or write operations.
 
+### RLS-03 — Cross-Organisation Employee Isolation
+
+**Status:** PASS
+
+**Execution date:** 8 October 2026
+
+**Test file:** `005_rls_employee_tenant_isolation.sql`
+
+**Objective:** Verify that Sarah Mitchell's simulated authenticated session can view NorthStar employee records without gaining visibility of HarbourBridge employee records.
+
+**Reported SQL output:**
+
+| test_id | result | visible_employee_count | harbourbridge_employees_visible |
+|---|---|---|---|
+| RLS-03 | PASS | 4 | 0 |
+
+**Interpretation:**
+
+The SQL assertion returned PASS.
+
+- Four employee records were visible.
+- All four visible records belonged to the organisation resolved for Sarah's simulated identity.
+- No employee record matching Daniel Brooks' HarbourBridge email address was visible.
+
+**Limitations:**
+
+- The test used simulated PostgreSQL authentication claims.
+- HarbourBridge's employee fixture was created and checked separately during development, not verified independently within this executable test.
+- Only SELECT access to `public.users` was tested.
+- This does not establish complete tenant isolation across all database tables or operations.
+
 ## Pending Executable Tests
 
-- RLS-03 — Cross-organisation employee isolation
 - RLS-04 — Own-organisation customer visibility
 - RLS-05 — Cross-organisation customer isolation
 - RLS-06 — Own-organisation case visibility
