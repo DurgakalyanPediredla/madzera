@@ -39,9 +39,39 @@ The database query returned one matching employee record and satisfied the authe
 - Does not test authentication tokens or session expiry.
 - Does not establish production authentication security.
 
+- 
+### RLS-01 — Own-Organisation Employee Visibility
+
+**Status:** PASS
+
+**Execution date:** 8 October 2026
+
+**Test file:** `003_rls_employee_visibility.sql`
+
+**Objective:** Verify that Sarah Mitchell's simulated authenticated session can read the four expected NorthStar Customs employee records through PostgreSQL Row Level Security.
+
+**Reported SQL output:**
+
+| test_id | result | visible_employee_count |
+|---|---|---|
+| RLS-01 | PASS | 4 |
+
+**Interpretation:**
+
+The SQL assertion returned PASS. Exactly four employee records were visible, and all four expected NorthStar employee email addresses matched.
+
+The synthetic database also contains Daniel Brooks, an employee belonging to HarbourBridge Customs Ltd. His record was not visible to Sarah under this test.
+
+**Limitations:**
+
+- Executed using a simulated authenticated PostgreSQL session.
+- Does not establish successful login through a real application.
+- Does not test INSERT, UPDATE or DELETE permissions.
+- Does not establish complete tenant isolation across all database tables.
+
+
 ## Pending Executable Tests
 
-- RLS-01 — Own-organisation employee visibility
 - RLS-02 — Unlinked identity access denial
 - RLS-03 — Cross-organisation employee isolation
 - RLS-04 — Own-organisation customer visibility
