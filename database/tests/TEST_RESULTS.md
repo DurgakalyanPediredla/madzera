@@ -129,9 +129,47 @@ The SQL assertion returned PASS.
 - Only SELECT access to `public.users` was tested.
 - This does not establish complete tenant isolation across all database tables or operations.
 
+### RLS-04 — Own-Organisation Customer Visibility
+
+**Status:** PASS
+
+**Execution date:** 8 October 2026
+
+**Test file:** `006_rls_customer_visibility.sql`
+
+**Objective:** Verify that Sarah Mitchell's simulated authenticated session can read the expected NorthStar Customs customer record through PostgreSQL Row Level Security.
+
+**Reported SQL output:**
+
+| test_id | result | visible_customer_count | expected_customer_visible |
+|---|---|---|---|
+| RLS-04 | PASS | 1 | 1 |
+
+**Interpretation:**
+
+The corrected SQL assertion returned PASS.
+
+- Exactly one customer record was visible.
+- The visible customer matched `CUST-1001` (ABC Imports Ltd).
+- The customer's organisation ID matched the organisation resolved for Sarah's simulated identity.
+
+**Test correction:**
+
+The initial execution failed with PostgreSQL error 42703 because the test referenced a nonexistent `customer_code` column.
+
+The database schema was inspected and the test was corrected to use `external_customer_id` and `name`.
+
+The corrected test executed successfully.
+
+**Limitations:**
+
+- Authentication was simulated using PostgreSQL session claims.
+- Only SELECT access to `public.customers` was tested.
+- Cross-organisation customer isolation is tested separately in RLS-05.
+- No real application login or production security assessment was performed.
+
 ## Pending Executable Tests
 
-- RLS-04 — Own-organisation customer visibility
 - RLS-05 — Cross-organisation customer isolation
 - RLS-06 — Own-organisation case visibility
 - RLS-07 — Cross-organisation case isolation
