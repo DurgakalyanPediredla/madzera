@@ -311,3 +311,47 @@ Passing these tests does not establish production security readiness or complete
 
 **Result:** 4 of 4 Migration 004 SQL simulation tests passed.
 
+
+## Database Security Milestone — 09 October 2026
+
+### Migration 006 — Visibility Validation
+- Status: PASS
+- Verified CHECK constraints on comments and attachments.
+- Both constraints validated successfully.
+- Allowed values: internal, customer.
+
+### Migration 007 — Customer Tenant Integrity
+- Status: PASS
+- Verified UNIQUE (id, organisation_id) on customers.
+- Constraint validated successfully.
+
+### Migration 008 — Case Activity Reference Integrity
+- Status: PASS
+- Verified 8 composite foreign keys.
+- All 8 constraints validated successfully.
+- Covers case events, comments and attachments.
+
+### Migration 009 — Least-Privilege Access
+- Status: PASS
+- Anonymous role has no effective table privileges on
+  cases, case_events, comments or attachments.
+- Authenticated role has SELECT access to cases only.
+- Service-role privileges remained unchanged.
+- Simulated employee access returned NorthStar's case
+  and excluded HarbourBridge's case.
+
+### Migration 010 — Case Tenant Integrity
+- Status: PASS
+- Preflight checked 2 existing cases.
+- Found 0 invalid customer references.
+- Found 0 invalid employee assignments.
+- Found 0 invalid team assignments.
+- Verified all 3 composite foreign keys.
+
+### Verification Scope and Limitations
+- Tests used synthetic demonstration data.
+- RLS access was tested through simulated SQL sessions.
+- Real browser authentication has not yet been tested.
+- Case creation and update permissions are not yet implemented.
+- Customer chatbot and document uploads are not yet implemented.
+- Storage security and end-to-end application testing remain pending.
