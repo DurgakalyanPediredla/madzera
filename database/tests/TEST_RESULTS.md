@@ -233,9 +233,51 @@ The SQL assertion returned PASS.
 - Team-based access restrictions and case write permissions remain untested.
 - No real application login or production security assessment was performed.
 
-## Pending Executable Tests
+### RLS-07 — Cross-Organisation Case Isolation
 
-- RLS-07 — Cross-organisation case isolation
+**Status:** PASS
+
+**Execution date:** 9 October 2026
+
+**Test file:** `009_rls_case_tenant_isolation.sql`
+
+**Objective:** Verify that Sarah Mitchell's simulated authenticated session can read NorthStar Customs case records without gaining visibility of HarbourBridge Customs case records.
+
+**Reported SQL output:**
+
+| test_id | result | visible_case_count | harbourbridge_cases_visible |
+|---|---|---|---|
+| RLS-07 | PASS | 1 | 0 |
+
+**Interpretation:**
+
+The SQL assertion returned PASS.
+
+- Exactly one case record was visible.
+- The visible case matched `CASE-DEMO-001`.
+- The visible case belonged to Sarah's resolved organisation.
+- No case matching HarbourBridge's `CASE-HB-DEMO-001` was visible.
+
+**Limitations:**
+
+- Authentication was simulated using PostgreSQL session claims.
+- The HarbourBridge case fixture was created separately during development and was not independently verified within this executable test.
+- Only SELECT access to `public.cases` was tested.
+- Team-based access, write permissions and other tables remain untested.
+- No real application login or production security assessment was performed.
+
+
+## Initial Executable Test Suite Summary
+
+**Execution status:** 8 of 8 tests reported PASS.
+
+All eight planned SQL assertions have been executed manually in the synthetic Supabase development environment.
+
+These results provide initial evidence for authentication identity mapping and organisation-level SELECT access controls on `public.users`, `public.customers` and `public.cases`.
+
+This is not a CI-automated suite, a penetration test or a production security certification.
+
+Further testing is required for remaining tables, write operations, real authenticated sessions, team-based permissions and cross-tenant relationship integrity.
 
 ## Evidence Notes
 
