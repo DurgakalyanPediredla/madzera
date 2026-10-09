@@ -10,7 +10,7 @@
 - Execution method: Supabase SQL Editor
 - Initial execution date: 8 October 2026
 
-## Automated SQL Test Execution Results
+## Manually Executed SQL Test Results
 
 ### AUTH-01 — Authentication Identity Mapping
 
@@ -284,3 +284,30 @@ Further testing is required for remaining tables, write operations, real authent
 Results are based on executed SQL and observations reported during development.
 
 Passing these tests does not establish production security readiness or complete multi-tenant isolation.
+
+
+## Migration 004 — Organisation and Team Read Policies
+
+**Test date:** 9 October 2026  
+**Environment:** Supabase PostgreSQL development database  
+**Method:** SQL role simulation using `SET LOCAL ROLE authenticated` and a simulated JWT subject.
+
+| Test ID | Description | Expected result | Actual result | Status |
+|---|---|---|---|---|
+| RLS-08 | Organisation tenant isolation | Sarah sees NorthStar only | NorthStar: 1; HarbourBridge: 0 | PASS |
+| RLS-09 | Team tenant isolation | Sarah sees NorthStar teams only | 4 NorthStar teams; no HarbourBridge teams | PASS |
+| RLS-10 | Team membership tenant isolation | Sarah sees NorthStar memberships only | 5 NorthStar memberships; no HarbourBridge memberships | PASS |
+| RLS-11 | Unlinked authenticated identity | No organisation, team or membership visibility | 0 organisations; 0 teams; 0 memberships | PASS |
+
+### Verification notes
+
+- All four tests were executed manually in Supabase SQL Editor.
+- Migration 004 introduced three SELECT policies for `organisations`, `teams`, and `team_members`.
+- All three policies apply to the `authenticated` role and use `current_user_organisation_id()`.
+- No INSERT, UPDATE or DELETE policies were introduced.
+- Tests use simulated PostgreSQL authentication context, not actual client authentication.
+- The unlinked identity test assumes the synthetic UUID has no active employee mapping.
+- Real Supabase Auth session testing remains outstanding.
+
+**Result:** 4 of 4 Migration 004 SQL simulation tests passed.
+
