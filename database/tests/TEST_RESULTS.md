@@ -355,3 +355,31 @@ Passing these tests does not establish production security readiness or complete
 - Case creation and update permissions are not yet implemented.
 - Customer chatbot and document uploads are not yet implemented.
 - Storage security and end-to-end application testing remain pending.
+
+## Authenticated Case Creation — Migration 013
+
+**Test date:** 10 October 2026  
+**Environment:** Supabase PostgreSQL development database  
+**Testing method:** SQL session simulation using the `authenticated` database role and simulated JWT subject claims.
+
+| Test ID | Description | Expected result | Actual result | Status |
+|---|---|---|---|---|
+| CASE-INSERT-01 | Active NorthStar employee creates a NorthStar case | INSERT succeeds | INSERT succeeded; default status `open`, priority `medium` | PASS |
+| CASE-INSERT-02 | NorthStar employee attempts to create a HarbourBridge case | INSERT rejected | PostgreSQL error `42501` — RLS violation | PASS |
+| CASE-INSERT-03 | Unlinked authenticated identity attempts case creation | INSERT rejected | PostgreSQL error `42501` — RLS violation | PASS |
+| CASE-PERM-01 | Verify authenticated and anonymous table privileges | Only authenticated SELECT and INSERT permitted | All eight privilege checks matched expectations | PASS |
+
+### Security observations
+
+- The `cases` table has Row-Level Security enabled.
+- The INSERT policy restricts new cases to the authenticated employee's organisation.
+- Employees without a matching active user record cannot create cases.
+- Anonymous users have no direct case-table privileges.
+- Authenticated users have no direct UPDATE or DELETE privileges.
+- Authorised creation was tested inside a transaction using `ROLLBACK`.
+
+### Current limitations
+
+These tests simulate authenticated database sessions. They do not yet demonstrate real application login, browser-to-backend authentication, or end-to-end tenant isolation.
+
+The application must derive organisation identity from a trusted authenticated session. Additional controls are required for case updates, protected fields, audit events and secure customer-facing chatbot submissions.
