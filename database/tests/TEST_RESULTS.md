@@ -383,3 +383,38 @@ Passing these tests does not establish production security readiness or complete
 These tests simulate authenticated database sessions. They do not yet demonstrate real application login, browser-to-backend authentication, or end-to-end tenant isolation.
 
 The application must derive organisation identity from a trusted authenticated session. Additional controls are required for case updates, protected fields, audit events and secure customer-facing chatbot submissions.
+
+## Case Update Security and Audit Logging — Migrations 014–015
+
+**Test date:** 10 October 2026  
+**Environment:** Supabase PostgreSQL development database  
+**Testing method:** SQL transactions, simulated Supabase Auth identities, PostgreSQL role switching and transaction rollback.
+
+| Test ID | Description | Actual result | Status |
+|---|---|---|---|
+| CASE-AUDIT-01 | Verify audit trigger installation | Trigger installed, enabled and owned by `postgres` | PASS |
+| CASE-AUDIT-02 | Verify automatic audit event creation | `case_updated` event created with correct employee identity and priority change | PASS |
+| CASE-AUDIT-03 | Reject update without an active employee identity | PostgreSQL error `42501` | PASS |
+| CASE-UPDATE-01 | Authenticated employee updates own organisation's case | UPDATE succeeded | PASS |
+| CASE-UPDATE-02 | Verify authenticated update generates an audit event | Event attributed to Sarah Mitchell | PASS |
+| CASE-UPDATE-03 | Attempt cross-organisation UPDATE | Zero rows updated | PASS |
+| CASE-UPDATE-04 | Attempt to modify protected `organisation_id` | PostgreSQL permission error `42501` | PASS |
+
+### Implemented controls
+
+- Tenant-scoped UPDATE policy on `public.cases`.
+- Column-level UPDATE permissions limited to `status`, `priority`, `assigned_team_id` and `assigned_user_id`.
+- Automatic audit events for changes to these workflow fields.
+- Employee attribution using the authenticated Supabase identity.
+- Automatic maintenance of `updated_at` and resolution timestamps.
+- No direct employee INSERT, UPDATE or DELETE access to `case_events`.
+- Cross-organisation case updates blocked by Row-Level Security.
+
+### Current limitations
+
+- Tests use simulated authenticated sessions, not real application login.
+- The audit trigger has not yet been tested for every status transition and assignment combination.
+- Business rules such as mandatory four-eyes approval before resolution are not yet enforced.
+- Employee case creation requires further field-level hardening.
+- Customer-facing chatbot submission and the employee dashboard are not yet implemented.
+- Production security review and end-to-end application testing remain outstanding.
