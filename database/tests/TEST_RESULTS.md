@@ -418,3 +418,28 @@ The application must derive organisation identity from a trusted authenticated s
 - Employee case creation requires further field-level hardening.
 - Customer-facing chatbot submission and the employee dashboard are not yet implemented.
 - Production security review and end-to-end application testing remain outstanding.
+
+
+## Case Security Regression Tests — October 2026
+
+Environment: Supabase development database
+Test data: Synthetic NorthStar and HarbourBridge fixtures
+Authentication: Simulated JWT identity with PostgreSQL authenticated role
+
+| Test file | Verification | Result |
+|---|---|---|
+| 014_authenticated_case_creation.sql | Same-organisation case creation | PASS |
+| 015_cross_organisation_case_creation.sql | Cross-organisation INSERT rejected | PASS |
+| 016_unlinked_identity_case_creation.sql | Unlinked identity INSERT rejected | PASS |
+| 017_authenticated_case_audit.sql | Authenticated UPDATE generates audit event | PASS |
+| 018_cross_organisation_case_update.sql | Cross-organisation UPDATE affects zero rows | PASS |
+| 019_protected_case_column_update.sql | Protected organisation_id UPDATE denied | PASS |
+
+All tests were executed against the development database.
+Test transactions were rolled back.
+
+Limitations:
+- These are database-level tests, not browser-based tests.
+- JWT identities were simulated in SQL.
+- Cross-organisation UPDATE testing assumes the target fixture exists.
+- Production authentication and application integration remain untested.
