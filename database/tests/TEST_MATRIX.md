@@ -80,3 +80,34 @@ Manual results: Reported and documented.
 Automated tests: Pending.
 Independent security review: Not performed.
 Production deployment approval: Not established.
+
+## 8. Security Regression Matrix — 15 October 2026
+
+The following matrix records additional development verification performed after the initial SQL tests.
+
+Earlier tests describe the database permissions at the time of execution. Later migrations intentionally replaced direct case-table access with controlled database functions.
+
+| Test ID | Security requirement | Verification | Status |
+|---|---|---|---|
+| SEC-01 | Authenticated employees cannot directly read cases | Hosted REST SELECT returned HTTP 403 | PASS |
+| SEC-02 | Authenticated employees can retrieve an authorised case queue | Hosted get_case_queue RPC returned HTTP 200 | PASS |
+| SEC-03 | Active employees can open an exclusive case session | Hosted open_case_session RPC acquired a lock | PASS |
+| SEC-04 | Case details require a valid session token | Hosted get_locked_case_details returned the correct case | PASS |
+| SEC-05 | Invalid lock tokens do not disclose case details | Invalid-token request returned an empty result | PASS |
+| SEC-06 | Case sessions can be closed | Hosted close_case_session returned true | PASS |
+| SEC-07 | Authenticated employees cannot directly insert cases | Hosted privilege inspection confirmed INSERT denied | PASS |
+| SEC-08 | Controlled case creation records employee attribution | Hosted RPC creation and audit event inspected | PASS |
+| SEC-09 | Authenticated employees cannot directly update or delete cases | Hosted privilege inspection confirmed UPDATE and DELETE denied | PASS |
+| SEC-10 | Anonymous users cannot execute employee case creation | Hosted function privilege inspection confirmed EXECUTE denied | PASS |
+| SEC-11 | Case-update audit trigger validates active employee identity | Hosted function definition inspected | CODE REVIEW |
+| SEC-12 | Case updates require ownership of an active lock | Controlled update function not yet implemented | PENDING |
+| SEC-13 | Independent four-eyes approval is enforced | Full authorisation workflow not yet implemented | PENDING |
+| SEC-14 | Complete tenant isolation across all database functions | Comprehensive regression suite not yet completed | PENDING |
+
+### Evidence Classification
+
+- PASS: Reported successful development test or permission inspection.
+- CODE REVIEW: Function definition inspected, without claiming an end-to-end test.
+- PENDING: Requirement not yet fully implemented or verified.
+
+These results apply to the development environment and do not establish production security readiness.

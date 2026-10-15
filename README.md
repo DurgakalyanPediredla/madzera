@@ -1,144 +1,155 @@
 # Madzera
 
-Madzera is an early-stage operational workflow and customer communication platform being designed for customs intermediaries.
+Madzera is an early-stage, privacy-first operational workflow and customer communication platform being developed for UK customs intermediaries.
 
-The project is exploring how customs brokers and freight/customs operations teams can manage customer enquiries, operational cases, team ownership, audit history and supervisory review through a structured workflow rather than relying primarily on fragmented email, telephone and spreadsheet processes.
+The platform aims to help customs brokers and freight operations teams manage customer enquiries, internal cases, employee ownership, audit trails and supervisory workflows without replacing their existing customs declaration systems.
 
-## Problem Being Explored
+## Problem
 
-Early practitioner research with UK customs and freight intermediaries has identified workflows where customer enquiries and operational work may be managed across email, telephone, spreadsheets and documents.
+Customs intermediaries may manage enquiries and operational work across email, telephone, spreadsheets and disconnected documents.
 
-This can create operational challenges including:
+This can make it difficult to track ownership, avoid duplicated work, monitor outstanding enquiries and reconstruct operational decisions.
 
-- limited visibility of ongoing work;
-- manual coordination between employees;
-- potential duplication of work;
-- fragmented customer communication;
-- difficulty reconstructing a clear operational history; and
-- limited ability for customers to obtain structured status updates without contacting staff.
-
-Madzera is being developed as a workflow and intelligence layer intended to complement, rather than replace, existing customs and operational systems.
+Madzera is exploring a structured workflow layer that improves operational visibility while minimising unnecessary duplication of customer and shipment information.
 
 ## Product Direction
 
-The proposed platform combines:
+Planned capabilities include:
 
-- organisation and team-based case management;
-- controlled case ownership and routing;
-- operational task management;
-- chronological audit events;
-- internal and customer-visible updates;
-- document references and attachments;
-- external system references;
-- supervisory and four-eyes review workflows;
-- customer conversation management; and
-- future API and AI-assisted customer communication.
+- Multi-tenant organisation and employee management
+- Customer enquiry and internal case management
+- Team routing and employee assignment
+- Exclusive case-working sessions
+- Chronological audit history
+- Internal and customer-visible communications
+- Document references and controlled attachments
+- Operational tasks and supervisory review
+- Independent four-eyes approval
+- Case metrics and operational reporting
+- Future authorised integrations and AI-assisted communication
 
-The architecture is being designed so that operational references can be linked to cases without requiring Madzera to duplicate entire customs declaration or shipment datasets.
+These are product objectives, not a claim that every feature is operational.
 
-## Current Development Status
+## Current Implementation
 
-The project is currently at database-backed workflow validation stage.
+As of 15 October 2026, Madzera has a PostgreSQL and Supabase development backend with 32 versioned SQL migrations.
 
-Completed:
+Implemented and tested components include:
 
-- relational data model / ERD;
-- PostgreSQL schema implementation;
-- 15-table relational architecture;
-- organisation, user and team model;
-- customer and case model;
-- case ownership and routing model;
-- case event / audit history;
-- internal versus customer-visible comments;
-- attachment metadata model;
-- external reference model;
-- operational task model;
-- four-eyes review model;
-- conversation and message model; and
-- synthetic end-to-end workflow validation.
+- A 15-table relational data model
+- Organisation, employee, team, customer and case structures
+- Supabase Auth identity mapping
+- Selected organisation-level Row Level Security policies
+- Database constraints supporting tenant integrity
+- Case events and update audit triggers
+- Controlled employee case creation through a database function
+- Case queue retrieval through a database function
+- Exclusive case-lock acquisition and release
+- Case-session opening, renewal and closing functions
+- Lock-token-protected case detail retrieval
+- Restricted direct authenticated access to the cases table
 
-Not yet implemented:
+Selected workflows have been tested using synthetic data, SQL role simulation and authenticated Supabase REST requests.
 
-- production authentication;
-- Row Level Security policies;
-- backend application/API;
-- internal operations portal;
-- customer-facing chatbot;
-- secure production document upload;
-- live customs-system integrations; and
-- production AI functionality.
+These tests do not establish complete security coverage or production readiness.
 
-## Synthetic Workflow Validation
+## Case Access Model
 
-A fictional customs intermediary environment has been created to test the relational model.
+The intended employee workflow is:
 
-The demonstration scenario covers:
+1. Authenticate as an active employee.
+2. Retrieve an authorised case queue.
+3. Open a case-working session.
+4. Acquire an exclusive, time-limited case lock.
+5. Retrieve case details using the valid lock token.
+6. Perform authorised workflow actions.
+7. Record changes and audit events.
+8. Release the lock when the session closes.
 
-1. customer enquiry received through a web conversation;
-2. declaration reference associated with the customer;
-3. enquiry escalated into an operational case;
-4. case routed to Customs Operations;
-5. employee takes ownership;
-6. audit event records the ownership change;
-7. missing commercial invoice identified;
-8. internal and customer-visible information separated;
-9. customer document represented against the same case;
-10. case submitted for independent four-eyes review;
-11. second employee approves the review;
-12. case resolved; and
-13. customer-safe status retrieved from the same case record.
+The current backend implements and tests selected parts of this workflow.
 
-The scenario currently validates the data model and workflow manually through PostgreSQL. It does not represent a completed production application.
+Controlled employee case updates requiring an active lock remain under development. Direct authenticated case-table SELECT, INSERT, UPDATE and DELETE privileges are restricted in the hosted development project.
 
-## Database
+## Security Architecture
 
-The `/database` directory contains:
+Security controls under development include:
 
-- `schema.sql` — reproducible PostgreSQL database structure.
-- `seed_demo.sql` — synthetic demonstration data and workflow used for development validation.
+- Authentication through Supabase Auth
+- Active employee identity verification
+- Organisation-level tenant isolation
+- Least-privilege database permissions
+- Security-definer functions for controlled workflows
+- Exclusive, expiring case locks
+- Token-validated case detail retrieval
+- Employee-attributed audit events
+- Protected case identifiers and organisation ownership
 
-All demonstration organisations, employees, customers, email addresses, declaration references and documents are fictional.
+Security limitations:
 
-## Architecture Direction
+- Complete tenant isolation across every table and function has not been established.
+- Team-level and management permissions require further testing.
+- The case-update audit trigger does not currently enforce an active case lock.
+- Four-eyes approval is not yet enforced as a complete workflow.
+- Storage, attachment access and customer-facing authorisation remain incomplete.
+- No independent penetration test or production security assessment has been completed.
 
-The intended architecture is:
+No real customer documents or customs declaration data should be used during this prototype stage.
 
-Customer / Employee Interface  
-↓  
-Madzera Application & API Layer  
-↓  
-Authentication + Authorisation  
-↓  
-Workflow / Audit / Review Logic  
-↓  
-PostgreSQL  
-↕  
-Authorised external-system integrations
+## Technology
 
-Future customer-facing AI functionality is intended to retrieve only authorised customer-safe information rather than expose unrestricted internal case information.
+- PostgreSQL
+- Supabase Auth and database APIs
+- Supabase CLI
+- Docker for local development
+- Next.js frontend project
+- Git and GitHub for version control
 
-## Security Direction
+## Repository Structure
 
-Row Level Security has been enabled at database level.
+- `database/schema.sql` — original relational schema
+- `database/seed_demo.sql` — synthetic demonstration data
+- `database/migrations/` — incremental SQL migrations
+- `database/tests/` — SQL tests and documented evidence
+- `web/` — Next.js frontend project
+- `README.md` — project overview and implementation status
 
-Production RLS policies, authenticated user mapping, tenant isolation and team-level permissions are the next development stage.
+The original schema file alone should not be assumed to reproduce the latest database state. Incremental migrations are also required.
 
-No real customer or customs declaration data should be used during the current prototype stage.
+## Testing and Evidence
 
-## Development Roadmap
+Testing currently includes:
 
-1. Supabase authentication
-2. organisation-level tenant isolation
-3. team and role-based access policies
-4. backend workflow actions
-5. internal case-management portal
-6. supervisory review interface
-7. customer status API
-8. secure document handling
-9. customer communication interface
-10. controlled AI-assisted query handling
-11. external system integration prototypes
+- Manual PostgreSQL security assertions
+- SQL-based simulated authenticated sessions
+- Local Supabase development testing
+- Selected real authenticated REST API tests against the hosted development project
+- Case creation, queue access, session locking and secure detail retrieval
+- Direct case-table permission checks
 
-## Status
+Historical tests may describe privileges that were intentionally changed by later migrations.
 
-Early-stage prototype development and practitioner validation.
+See:
+
+- `database/tests/TEST_MATRIX.md`
+- `database/tests/TEST_RESULTS.md`
+
+Automated continuous-integration regression testing is not yet established.
+
+## Development Priorities
+
+1. Consolidate test evidence and regression coverage.
+2. Implement controlled, lock-validated case updates.
+3. Complete workflow authorisation and assignment rules.
+4. Implement independent supervisory and four-eyes approval.
+5. Develop the employee operations interface.
+6. Implement secure attachment and document handling.
+7. Develop customer-safe status and communication interfaces.
+8. Add operational reporting and analytics.
+9. Evaluate authorised integrations and AI-assisted workflows.
+10. Conduct broader security and production-readiness testing.
+
+## Project Status
+
+Early-stage development prototype undergoing backend workflow validation, security hardening and practitioner research.
+
+Madzera is not yet production-ready.

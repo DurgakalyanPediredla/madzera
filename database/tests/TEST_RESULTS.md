@@ -443,3 +443,83 @@ Limitations:
 - JWT identities were simulated in SQL.
 - Cross-organisation UPDATE testing assumes the target fixture exists.
 - Production authentication and application integration remain untested.
+
+## Hosted Supabase Security Verification — 15 October 2026
+
+### Environment and scope
+
+- Project: Madzera_V1 development environment
+- Backend: Supabase PostgreSQL and REST/RPC APIs
+- Test data: Synthetic NorthStar Customs Ltd and HarbourBridge Customs Ltd records
+- Authentication: Real Supabase Auth login for selected employee API tests
+- Execution: Manual Terminal scripts, hosted SQL Editor queries and permission inspections
+- Latest migration represented: 032_controlled_employee_case_creation.sql
+
+These results supplement earlier SQL simulation tests. They are not evidence of a complete automated regression suite.
+
+### Hosted verification results
+
+| Test ID | Verification | Observed result | Status |
+|---|---|---|---|
+| SEC-01 | Direct authenticated case SELECT | REST request returned HTTP 403, PostgreSQL 42501 | PASS |
+| SEC-02 | Controlled case queue retrieval | get_case_queue returned HTTP 200 and an authorised NorthStar case | PASS |
+| SEC-03 | Exclusive case-session opening | open_case_session returned acquired=true and a lock token | PASS |
+| SEC-04 | Lock-protected case detail retrieval | HTTP 200; correct case returned | PASS |
+| SEC-05 | Invalid case lock token | HTTP 200 with no case details returned | PASS |
+| SEC-06 | Session closing | close_case_session returned HTTP 200 and true | PASS |
+| SEC-07 | Direct authenticated case INSERT | Database privilege inspection returned false | PASS |
+| SEC-08 | Controlled employee case creation | RPC created a synthetic case and employee-attributed case_created event | PASS |
+| SEC-09 | Direct authenticated case UPDATE and DELETE | Database privilege inspection returned false for both | PASS |
+| SEC-10 | Anonymous employee case creation execution | Function privilege inspection returned false | PASS |
+| SEC-11 | Case-update audit trigger review | Active employee validation, protected identifiers and audit-event insertion confirmed in function definition | CODE REVIEW |
+
+### Case creation test cleanup
+
+The synthetic case created during the hosted controlled-creation test and its associated test event were subsequently removed through privileged development cleanup.
+
+This cleanup is not evidence that ordinary authenticated employees can delete cases.
+
+### Case-lock verification
+
+A hosted test confirmed that an authenticated employee could open a case session, retrieve details with the corresponding lock token and close the session.
+
+A separate invalid-token request returned no case details.
+
+The hosted database was also inspected to verify lock ownership and case-opened/case-closed audit events.
+
+These observations do not establish concurrency correctness under simultaneous requests or prove that every database access path is protected.
+
+### Current permission model
+
+Following migrations 031 and 032, hosted development checks confirmed:
+
+- Direct authenticated SELECT on public.cases: denied
+- Direct authenticated INSERT on public.cases: denied
+- Direct authenticated UPDATE on public.cases: denied
+- Direct authenticated DELETE on public.cases: denied
+- Controlled employee case creation RPC: executable by authenticated users
+- Anonymous execution of employee case creation RPC: denied
+- Service-role access remains privileged
+
+Earlier test sections describing direct authenticated case-table access are historical and should not be interpreted as current permissions.
+
+### Outstanding security requirements
+
+- Implement a controlled case-update RPC requiring an active employee-owned case lock.
+- Review whether the update trigger should independently enforce lock ownership.
+- Test lock expiry, renewal, contention and concurrent update behaviour.
+- Enforce appropriate status transitions and independent four-eyes approval.
+- Verify cross-organisation isolation for every exposed function and relevant table.
+- Complete customer-facing, attachment and storage authorisation.
+- Add repeatable regression tests and CI execution.
+- Perform an independent security assessment before production use.
+
+### Evidence limitations
+
+Results were observed during development and recorded manually.
+
+Some tests used Python scripts outside the tracked repository. Their existence does not mean the tests are currently reproducible through GitHub or executed automatically.
+
+No passwords, access tokens, lock tokens or private customer information are included in this report.
+
+Production readiness has not been established.
