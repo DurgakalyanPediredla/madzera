@@ -16,6 +16,28 @@ TEST_EMPLOYEES = {
 }
 
 
+EMPLOYEE_FIXTURES = {
+    "employee-a@madzera-test.example": {
+        "id": "f1af6f09-7032-428d-a176-7bbfa6dba747",
+        "full_name": "Test Employee A",
+        "organisation_id": "0a316877-23d4-4dc3-b0ed-350208d68fb3",
+        "role": "agent",
+    },
+    "employee-b@madzera-test.example": {
+        "id": "ba0a74da-c3e5-4346-a337-0f536115bb7c",
+        "full_name": "Test Employee B",
+        "organisation_id": "0a316877-23d4-4dc3-b0ed-350208d68fb3",
+        "role": "agent",
+    },
+    "employee-c@madzera-test.example": {
+        "id": "e5bce736-bcce-4a04-b720-a7b90837e371",
+        "full_name": "Test Employee C",
+        "organisation_id": "cbd6a8ae-adf3-4099-9352-1862e1751dea",
+        "role": "agent",
+    },
+}
+
+
 def get_local_config():
     result = subprocess.run(
         ["npx", "--yes", "supabase", "status", "-o", "json"],
@@ -66,7 +88,21 @@ def get_existing_auth_users(key):
 
 
 def main():
+    import sys
+
     print("=== MADZERA LOCAL FIXTURE SETUP ===")
+
+    if len(sys.argv) > 2 or (
+        len(sys.argv) == 2 and sys.argv[1] != "--provision"
+    ):
+        raise SystemExit("Usage: setup_local_fixtures.py [--provision]")
+
+    if len(sys.argv) == 2:
+        raise SystemExit(
+            "STOP: Provisioning is not implemented yet. "
+            "No database records were modified."
+        )
+
     print("Mode: READ-ONLY PREPARATION")
 
     key = get_local_config()
