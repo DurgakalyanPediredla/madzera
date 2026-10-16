@@ -176,6 +176,77 @@ def provision_missing_auth_users(key):
     print("PASS: Missing local Auth accounts created.")
 
 
+def provision_application_employees(key):
+    """Create missing local application employees."""
+    auth_users = get_existing_auth_users(key)
+    auth_by_email = {
+        u.get("email", "").lower(): u["id"]
+        for u in auth_users
+    }
+
+    request = urllib.request.Request(
+        f"{LOCAL_URL}/rest/v1/users?select=id,email,organisation_id,auth_user_id,full_name,role,is_active",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+        },
+    )
+
+    with urllib.request.urlopen(request, timeout=20) as response:
+        existing = {
+            u["email"].lower(): u
+            for u in json.load(response)
+        }
+
+    for email, fixture in EMPLOYEE_FIXTURES.items():
+        auth_id = auth_by_email.get(email)
+
+        if not auth_id:
+            raise RuntimeError(f"Missing Auth account: {email}")
+
+        record = existing.get(email)
+
+        if record:
+            if (
+                record["id"] != fixture["id"]
+                or record["organisation_id"] != fixture["organisation_id"]
+                or record["auth_user_id"] != auth_id
+                or record["full_name"] != fixture["full_name"]
+                or record["role"] != fixture["role"]
+                or record["is_active"] is not True
+            ):
+                raise RuntimeError(f"Employee fixture mismatch: {email}")
+
+            print(f"EXISTS: Application employee {email}")
+            continue
+
+        payload = {
+            **fixture,
+            "email": email,
+            "auth_user_id": auth_id,
+            "is_active": True,
+        }
+
+        request = urllib.request.Request(
+            f"{LOCAL_URL}/rest/v1/users",
+            data=json.dumps(payload).encode(),
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            method="POST",
+        )
+
+        with urllib.request.urlopen(request, timeout=20):
+            pass
+
+        print(f"CREATED: Application employee {email}")
+
+    print("PASS: Application employee provisioning completed.")
+
+
 def main():
     import sys
 
@@ -190,7 +261,8 @@ def main():
         print("Mode: LOCAL AUTH PROVISIONING")
         key = get_local_config()
         provision_missing_auth_users(key)
-        print("Application fixture provisioning is not implemented yet.")
+        provision_application_employees(key)
+        print("PASS: Local Auth and application employees verified.")
         return
 
     print("Mode: READ-ONLY PREPARATION")
