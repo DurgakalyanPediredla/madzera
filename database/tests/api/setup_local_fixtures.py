@@ -87,6 +87,95 @@ def get_existing_auth_users(key):
     return users
 
 
+def request_fixture_password(email):
+    """Request a password without displaying or saving it."""
+    import getpass
+
+    password = getpass.getpass(
+        f"New local test password for {email}: "
+    )
+    confirmation = getpass.getpass(
+        "Confirm password: "
+    )
+
+    if password != confirmation:
+        raise RuntimeError("Passwords do not match.")
+
+    if len(password) < 12:
+        raise RuntimeError(
+            "Use a test password of at least 12 characters."
+        )
+
+    return password
+
+
+def create_local_auth_user(key, email, password):
+    """Create a missing test account using local Supabase Admin Auth."""
+    if LOCAL_URL != "http://127.0.0.1:54321":
+        raise RuntimeError("STOP: Local Supabase required.")
+
+    payload = json.dumps({
+        "email": email,
+        "password": password,
+        "email_confirm": True,
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        f"{LOCAL_URL}/auth/v1/admin/users",
+        data=payload,
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request, timeout=20) as response:
+        user = json.load(response)
+
+    if not user.get("id"):
+        raise RuntimeError("Auth API did not return a user ID.")
+
+    return user["id"]
+
+
+def provision_missing_auth_users(key):
+    """Create missing local test Auth accounts only."""
+    verified_key = get_local_config()
+
+    if key != verified_key:
+        raise RuntimeError(
+            "STOP: Local service-role credentials do not match."
+        )
+
+    existing_users = get_existing_auth_users(key)
+
+    existing_emails = {
+        user.get("email", "").lower()
+        for user in existing_users
+    }
+
+    missing = [
+        email for email in EMPLOYEE_FIXTURES
+        if email not in existing_emails
+    ]
+
+    if not missing:
+        print("PASS: All test Auth accounts already exist.")
+        print("No Auth accounts were modified.")
+        return
+
+    print(f"Missing local Auth accounts: {len(missing)}")
+
+    for email in missing:
+        password = request_fixture_password(email)
+        create_local_auth_user(key, email, password)
+        print(f"CREATED: {email}")
+
+    print("PASS: Missing local Auth accounts created.")
+
+
 def main():
     import sys
 
@@ -98,10 +187,11 @@ def main():
         raise SystemExit("Usage: setup_local_fixtures.py [--provision]")
 
     if len(sys.argv) == 2:
-        raise SystemExit(
-            "STOP: Provisioning is not implemented yet. "
-            "No database records were modified."
-        )
+        print("Mode: LOCAL AUTH PROVISIONING")
+        key = get_local_config()
+        provision_missing_auth_users(key)
+        print("Application fixture provisioning is not implemented yet.")
+        return
 
     print("Mode: READ-ONLY PREPARATION")
 
