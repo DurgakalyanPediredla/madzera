@@ -523,3 +523,104 @@ Some tests used Python scripts outside the tracked repository. Their existence d
 No passwords, access tokens, lock tokens or private customer information are included in this report.
 
 Production readiness has not been established.
+
+---
+
+## Case Workspace and Session Recovery — 19 October 2026
+
+### Environment and scope
+
+- Project: Madzera
+- Backend: Local and hosted Supabase PostgreSQL
+- Frontend: Next.js and TypeScript
+- Test data: Synthetic employee, organisation and case fixtures
+- Methods: SQL regression transactions, permission inspection,
+  TypeScript validation and manual browser testing
+- Migrations: 035–039
+
+### Database regression test results
+
+| Test file | Feature | Passing assertions | Status |
+|---|---|---:|---|
+| 020_save_employee_case_comment.sql | Internal comment creation and security | 8 | PASS |
+| 021_get_employee_case_comments.sql | Protected comment retrieval | 6 | PASS |
+| 022_get_employee_case_audit_history.sql | Protected audit-history retrieval | 6 | PASS |
+| 023_resume_employee_case_session.sql | Verified recovery of existing lock | 7 | PASS |
+| **Total** | | **27** | **PASS** |
+
+The tests were executed against local development PostgreSQL
+using synthetic fixtures and transaction rollback.
+
+These are database-level regression assertions, not evidence of
+independent production penetration testing.
+
+### Migration deployment
+
+The following migrations were applied to the development databases:
+
+- 035_save_employee_case_assignment.sql
+- 036_save_employee_case_comment.sql
+- 037_get_employee_case_comments.sql
+- 038_get_employee_case_audit_history.sql
+- 039_resume_employee_case_session.sql
+
+Hosted Supabase SQL Editor reported successful execution.
+Migration 039 was additionally checked locally for restricted
+function execution privileges.
+
+Successful migration execution does not independently establish
+the correctness of every runtime access path.
+
+### Browser verification
+
+Manual browser testing confirmed:
+
+- An authenticated employee could open a case workspace.
+- Case assignment could be saved and persisted.
+- Reassignment confirmation and cancellation behaved as expected.
+- Internal comments persisted after leaving and reopening.
+- Case Record and Audit History loaded successfully.
+- Repeated browser refreshes recovered a valid existing case lock.
+- Explicit Back to cases navigation released the session and
+  allowed the case to be opened again.
+- The delayed loading skeleton replaced the brief access-check message.
+
+These observations concern the tested development workflow.
+They are not a load test or exhaustive multi-user concurrency test.
+
+### Frontend and repository verification
+
+- TypeScript: `npx tsc --noEmit` — PASS.
+- Staged whitespace validation: `git diff --cached --check` — PASS.
+- Commit: `5d2c16d`.
+- GitHub branch: `main`.
+- Remote commit verification: PASS.
+
+### Security observations
+
+- Database validation remains authoritative for exclusive case access.
+- Session recovery requires an authenticated employee, matching
+  organisation, owned lock token and unexpired lease.
+- The recovery RPC does not create, renew or release a lock.
+- Browser sessionStorage is only a recovery hint.
+- Saving an assignment or comment does not release the lock.
+- Protected comments and audit history are accessed through
+  server-validated RPCs.
+
+### Remaining limitations and required testing
+
+1. Unexpected navigation or browser closure may leave a lock active
+   until its existing lease expires.
+2. Browser tab duplication may copy sessionStorage.
+3. Attachments and storage authorisation are not implemented.
+4. Simultaneous multi-employee contention requires dedicated testing.
+5. Production-scale performance and load testing remain outstanding.
+6. A comprehensive independent security review is still required.
+
+### Evidence interpretation
+
+These results extend the historical database security report.
+Earlier sections may describe permissions that were subsequently
+replaced by stricter RPC-based access controls.
+
+The latest observed results do not establish production readiness.
