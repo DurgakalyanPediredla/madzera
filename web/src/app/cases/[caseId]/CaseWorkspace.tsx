@@ -122,6 +122,17 @@ export default function CaseWorkspace({
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!saveMessage) return;
+
+    const timer = window.setTimeout(() => {
+      setSaveMessage(null);
+    }, 2000);
+
+    return () => window.clearTimeout(timer);
+  }, [saveMessage]);
+
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [confirming, setConfirming] = useState(false);
@@ -386,6 +397,10 @@ export default function CaseWorkspace({
       }
 
       navigationStarted = true;
+      setActiveCaseTab("record");
+      setSaveMessage(null);
+      setSaveError(null);
+      setConfirming(false);
       router.push("/cases");
       router.refresh();
     } catch {
@@ -889,6 +904,42 @@ export default function CaseWorkspace({
               </div>
             </div>
 
+        {confirming && session.status === "acquired" && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reassignment-title"
+            className="mx-5 my-4 rounded-lg border border-[#D8CBB8] bg-[#FAF8F4] p-5"
+          >
+            <h2 id="reassignment-title" className="font-semibold">
+              Confirm case reassignment
+            </h2>
+            <p className="mt-2 text-sm">
+              This case is assigned to{" "}
+              <strong>{assigneeName ?? "another employee"}</strong>.
+              {" "}Reassign it to yourself?
+            </p>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={saving}
+                className="rounded-md border px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSave(true)}
+                disabled={saving}
+                className="rounded-md bg-[#39352F] px-4 py-2 text-sm text-white disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Confirm reassignment"}
+              </button>
+            </div>
+          </div>
+        )}
+
             {(saveMessage || saveError ||
               employeeId === null ||
               (session.record.assigned_user_id !== null &&
@@ -1046,106 +1097,87 @@ export default function CaseWorkspace({
                 No audit events recorded for this case.
               </p>
             ) : (
-              <div className="mt-6 space-y-4">
-                {auditEvents.map((event) => {
-                  const labels: Record<string, string> = {
-                    case_created: "Case created",
-                    case_opened: "Case opened",
-                    case_closed_view: "Case view closed",
-                    case_updated: "Case updated",
-                    case_information_updated: "Case information updated",
-                  };
+              <div className="mt-6 overflow-x-auto rounded-md border border-[#EAE4D9]">
+                <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+                  <thead className="bg-[#F4F0E9] text-xs font-semibold text-[#756B60]">
+                    <tr>
+                      <th scope="col" className="px-4 py-3">Date &amp; Time</th>
+                      <th scope="col" className="px-4 py-3">Action</th>
+                      <th scope="col" className="px-4 py-3">Employee</th>
+                      <th scope="col" className="px-4 py-3">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EAE4D9]">
+                    {auditEvents.map((event) => {
+                      const labels: Record<string, string> = {
+                        case_created: "Case created",
+                        case_opened: "Case opened",
+                        case_closed_view: "Case view closed",
+                        case_updated: "Case updated",
+                        case_information_updated: "Case information updated",
+                      };
 
-                  const changes = [
-                    event.from_status !== event.to_status &&
-                    (event.from_status || event.to_status)
-                      ? `Status: ${event.from_status ?? "None"} → ${event.to_status ?? "None"}`
-                      : null,
-                    event.from_user_name !== event.to_user_name &&
-                    (event.from_user_name || event.to_user_name)
-                      ? `Case owner: ${event.from_user_name ?? "Unassigned"} → ${event.to_user_name ?? "Unassigned"}`
-                      : null,
-                    event.from_team_name !== event.to_team_name &&
-                    (event.from_team_name || event.to_team_name)
-                      ? `Team: ${event.from_team_name ?? "Unassigned"} → ${event.to_team_name ?? "Unassigned"}`
-                      : null,
-                  ].filter(Boolean);
+                      const changes = [
+                        event.from_status !== event.to_status &&
+                        (event.from_status || event.to_status)
+                          ? `Status: ${event.from_status ?? "None"} → ${event.to_status ?? "None"}`
+                          : null,
+                        event.from_user_name !== event.to_user_name &&
+                        (event.from_user_name || event.to_user_name)
+                          ? `Case owner: ${event.from_user_name ?? "Unassigned"} → ${event.to_user_name ?? "Unassigned"}`
+                          : null,
+                        event.from_team_name !== event.to_team_name &&
+                        (event.from_team_name || event.to_team_name)
+                          ? `Team: ${event.from_team_name ?? "Unassigned"} → ${event.to_team_name ?? "Unassigned"}`
+                          : null,
+                        event.details,
+                      ].filter((detail): detail is string => Boolean(detail));
 
-                  return (
-                    <article
-                      key={event.id}
-                      className="rounded-lg border border-[#EAE4D9] bg-[#FAF9F6] p-5"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold">
-                          {labels[event.event_type] ??
-                            event.event_type.replaceAll("_", " ")}
-                        </p>
-                        <time
-                          dateTime={event.created_at}
-                          className="text-xs text-[#756B60]"
-                        >
-                          {new Date(event.created_at).toLocaleString("en-GB", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                            timeZone: "Europe/London",
-                          })}
-                        </time>
-                      </div>
-                      <p className="mt-2 text-sm text-[#756B60]">
-                        By {event.actor_name}
-                      </p>
-                      {changes.length > 0 && (
-                        <ul className="mt-3 space-y-1 text-sm">
-                          {changes.map((change) => (
-                            <li key={change}>{change}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </article>
-                  );
-                })}
+                      return (
+                        <tr key={event.id} className="hover:bg-[#FAF9F6]">
+                          <td className="whitespace-nowrap px-4 py-3 text-xs text-[#756B60]">
+                            <time dateTime={event.created_at}>
+                              {new Date(event.created_at).toLocaleString("en-GB", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                                timeZone: "Europe/London",
+                              })}
+                            </time>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 font-medium">
+                            {labels[event.event_type] ??
+                              event.event_type.replaceAll("_", " ")}
+                          </td>
+                          <td className="px-4 py-3">{event.actor_name}</td>
+                          <td className="px-4 py-3">
+                            {changes.length > 0 ? (
+                              <details>
+                                <summary className="cursor-pointer text-[#51483F] hover:underline">
+                                  View details ({changes.length})
+                                </summary>
+                                <ul className="mt-2 space-y-1 text-xs text-[#756B60]">
+                                  {changes.map((change, index) => (
+                                    <li key={index} className="break-words">
+                                      {change}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </details>
+                            ) : (
+                              <span className="text-xs text-[#9A9084]">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>
         )}
 
-        {confirming && session.status === "acquired" && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="reassignment-title"
-            className="mt-5 rounded-lg border border-amber-300 bg-white p-5"
-          >
-            <h2 id="reassignment-title" className="font-semibold">
-              Confirm case reassignment
-            </h2>
-            <p className="mt-2 text-sm">
-              This case is currently assigned to{" "}
-              <strong>{assigneeName ?? "another employee"}</strong>.
-              Do you want to take responsibility for this case?
-              The change will be recorded in the audit history.
-            </p>
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={saving}
-                className="rounded-md border px-4 py-2 text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSave(true)}
-                disabled={saving}
-                className="rounded-md bg-[#39352F] px-4 py-2 text-sm text-white disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Confirm reassignment"}
-              </button>
-            </div>
-          </div>
-        )}
+
       </div>
     </main>
   );
