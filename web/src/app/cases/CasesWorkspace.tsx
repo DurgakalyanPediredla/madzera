@@ -4,6 +4,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import CreateCaseForm from "./CreateCaseForm";
 
 type CaseStatus = "Open" | "In progress" | "Pending customer";
 type CaseOrigin = "customer" | "internal";
@@ -84,6 +86,9 @@ const inputClass =
   "w-full rounded border border-[#D8CBB8] bg-white px-3 py-2 text-sm text-[#39352F]";
 
 export default function CasesWorkspace() {
+  const router = useRouter();
+  const [showCreateCase, setShowCreateCase] = useState(false);
+  const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
   const [cases, setCases] = useState<QueueCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -347,9 +352,21 @@ export default function CasesWorkspace() {
         {/* Right-hand queue */}
         <div className="min-w-0 flex-1">
           <div className="mb-6">
-            <h1 className="text-2xl font-semibold">
-              {basketTitle}
-            </h1>
+            <div className="flex items-center justify-between gap-4">
+              <h1 className="text-2xl font-semibold">
+                {basketTitle}
+              </h1>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreatedCaseId(null);
+                  setShowCreateCase((value) => !value);
+                }}
+                className="rounded-md bg-[#51483F] px-4 py-2 text-sm font-medium text-white hover:bg-[#39352F]"
+              >
+                {showCreateCase ? "Close form" : "+ Create Case"}
+              </button>
+            </div>
 
             <p className="mt-1 text-sm text-[#756B60]">
               {activeBasket === "customer"
@@ -357,6 +374,61 @@ export default function CasesWorkspace() {
                 : "Review internally raised cases and follow-ups."}
             </p>
           </div>
+
+          {showCreateCase && (
+            <div className="mb-6">
+              {createdCaseId ? (
+                <div className="space-y-4 rounded-lg border border-[#D8CBB8] bg-white p-5">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden="true" className="text-green-700">
+                      ✓
+                    </span>
+                    <h2 className="text-lg font-semibold">
+                      Case Created Successfully
+                    </h2>
+                  </div>
+
+                  <p className="text-sm text-[#756B60]">
+                    The case has been created and assigned to the selected team.
+                  </p>
+
+                  <div className="rounded-md bg-[#F7F4EF] p-4">
+                    <p className="mb-1 text-xs text-[#756B60]">Case ID</p>
+                    <p className="break-all font-mono text-sm font-medium">
+                      {createdCaseId}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateCase(false);
+                        setCreatedCaseId(null);
+                        window.location.reload();
+                      }}
+                      className="rounded bg-[#51483F] px-4 py-2 text-sm font-medium text-white"
+                    >
+                      Return to Case Queue
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/cases/${createdCaseId}`)}
+                      className="rounded border border-[#D8CBB8] px-4 py-2 text-sm"
+                    >
+                      Open Case Record
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <CreateCaseForm
+                  onCancel={() => setShowCreateCase(false)}
+                  onCreated={(caseId) => setCreatedCaseId(caseId)}
+                />
+              )}
+            </div>
+          )}
 
           <div className="overflow-hidden rounded-lg border border-[#D8CBB8] bg-white">
             {/* Queue header */}
