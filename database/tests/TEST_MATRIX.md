@@ -153,3 +153,49 @@ establish hosted deployment success or production security readiness.
 
 Detailed assessment:
 `docs/security/040_structured_references.md`
+
+## 10. Optional Customer Association — 20 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migration:** `041_optional_customer_internal_cases.sql`
+
+**Functional regression:** `025_optional_customer_internal_cases.sql`
+
+**Security regression:** `026_optional_customer_rpc_security.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| OPT-01 | Internal case may reference an organisation customer | Test 025 | PASS |
+| OPT-02 | Internal case may have no customer | Test 025 | PASS |
+| OPT-03 | Customer enquiry requires a customer | Test 025 | PASS |
+| OPT-04 | Cross-organisation customer association rejected | Test 025 | PASS |
+| OPT-05 | Cross-organisation team association rejected | Test 025 | PASS |
+| OPT-06 | Invalid case classification rejected | Test 025 | PASS |
+| OPT-07 | Stored case classification remains independent of customer association | Test 025 | PASS |
+| OPT-08 | Structured case reference generated | Test 025 and Test 026 | PASS |
+| OPT-09 | Case creation audit event recorded | Test 025 and Test 026 | PASS |
+| OPT-10 | Anonymous original and v2 RPC access denied | Test 026 | PASS |
+| OPT-11 | Unlinked authenticated identity rejected by both RPCs | Test 026 | PASS |
+| OPT-12 | Original RPC remains backward compatible | Test 026 | PASS |
+| OPT-13 | Private implementation inaccessible to application roles | Local PostgreSQL privilege inspection | PASS |
+| OPT-14 | Frontend TypeScript and production build | Local development checks | PASS |
+| OPT-15 | Browser-level creation of all three case combinations | Not yet executed | PENDING |
+| OPT-16 | Hosted migration and API security verification | Not yet deployed | PENDING |
+
+### Evidence and limitations
+
+Tests 025 and 026 passed locally and completed with transaction rollback.
+
+Test 026 produced seven PASS notices covering anonymous access,
+unlinked identity rejection and legacy RPC compatibility.
+
+The frontend passed TypeScript checking and Next.js production build.
+ESLint reported zero errors and one warning.
+
+These checks do not establish hosted deployment success or
+production security readiness.
+
+Detailed assessment:
+
+`docs/security/041_optional_customer_internal_cases.md`

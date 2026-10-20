@@ -751,3 +751,137 @@ Migration 040 is implemented and regression-tested locally.
 
 These results do not establish hosted deployment success,
 complete security coverage or production readiness.
+
+## Migration 041 — Optional Customer Association
+
+**Date:** 20 October 2026
+**Environment:** Local Supabase PostgreSQL
+**Overall result:** PASS for completed local tests
+**Hosted deployment:** Not performed
+
+### 1. Migration application
+
+File: `database/migrations/041_optional_customer_internal_cases.sql`
+
+**Result: PASS**
+
+The migration completed locally with `COMMIT`.
+
+The existing `create_employee_case` interface was retained.
+
+The new `create_employee_case_v2` interface accepts explicit case
+classification, independently of customer association.
+
+The shared implementation is located in the private
+`madzera_internal` schema.
+
+### 2. Functional regression — Test 025
+
+File: `database/tests/025_optional_customer_internal_cases.sql`
+
+**Result: PASS**
+
+Observed successful checks:
+
+- Transactional test fixtures prepared
+- Internal case with customer created
+- Internal case without customer created
+- Customer enquiry with customer created
+- Customer enquiry without customer rejected
+- Cross-organisation customer rejected
+- Cross-organisation team rejected
+- Invalid case type rejected
+- Stored case types and customer associations verified
+- Structured case references verified
+- Creation audit events verified
+
+The test completed with `ROLLBACK`.
+
+No permanent test-created cases, customers or teams remained.
+
+### 3. RPC security regression — Test 026
+
+File: `database/tests/026_optional_customer_rpc_security.sql`
+
+**Result: PASS — seven assertions**
+
+Observed PostgreSQL notices:
+
+```text
+PASS: Anonymous legacy RPC denied
+PASS: Anonymous v2 RPC denied
+PASS: Unlinked legacy RPC rejected
+PASS: Unlinked v2 RPC rejected
+PASS: Legacy RPC classification preserved
+PASS: Legacy RPC structured reference
+PASS: Legacy RPC creation audit event
+```
+
+The execution ended with:
+
+```text
+ROLLBACK
+=== TEST 026 EXECUTION COMPLETED ===
+```
+
+The test created a temporary case through the original RPC
+under a simulated authenticated employee session, verified
+its classification, reference and audit event, and rolled
+back the transaction.
+
+### 4. Privilege verification
+
+**Result: PASS**
+
+Local PostgreSQL privilege inspection confirmed:
+
+- Anonymous callers cannot execute either public RPC
+- Authenticated users can execute both public RPCs
+- The private implementation is not directly executable by
+  anonymous, authenticated or service-role callers
+- Anonymous and authenticated roles cannot directly use
+  the private `madzera_internal` schema
+
+Both public functions use SECURITY DEFINER with an empty
+search_path and delegate to the shared private implementation.
+
+### 5. Frontend checks
+
+Updated file: `web/src/app/cases/CreateCaseForm.tsx`
+
+**Result: PASS for completed static checks**
+
+- `npx tsc --noEmit` — passed
+- `npm run lint` — zero errors, one existing warning in
+  `web/src/app/cases/[caseId]/CaseWorkspace.tsx`
+- `npm run build` — passed
+- `git diff --check` — passed
+
+The frontend now sends explicit `p_case_type` through
+`create_employee_case_v2`.
+
+Browser-level creation testing has not been performed.
+
+### 6. Deployment and remaining work
+
+Migration 041 has been applied only to local Supabase.
+
+Outstanding:
+
+- Browser-level verification of all three case combinations
+- Hosted migration and API verification
+- Broader security and tenant-isolation review
+- Production deployment approval
+
+The hosted database must support `create_employee_case_v2`
+before the updated frontend is deployed.
+
+**Conclusion:** Migration 041 passed its completed local
+functional, security and compatibility checks. Production
+readiness has not yet been established.
+
+Feature documentation:
+`docs/features/041_optional_customer_internal_cases.md`
+
+Security assessment:
+`docs/security/041_optional_customer_internal_cases.md`

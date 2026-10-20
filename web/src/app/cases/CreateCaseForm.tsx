@@ -97,12 +97,14 @@ export default function CreateCaseForm({
 
     try {
       const { data, error: createError } = await supabase.rpc(
-        "create_employee_case",
+        "create_employee_case_v2",
         {
           p_title: title.trim(),
           p_description: description.trim() || null,
           p_priority: priority,
-          p_customer_id: origin === "customer" ? customerId : null,
+          p_customer_id: customerId || null,
+          p_case_type:
+            origin === "customer" ? "customer_query" : "internal_case",
           p_assigned_team_id: teamId,
         }
       );
@@ -149,14 +151,14 @@ export default function CreateCaseForm({
             </dd>
           </div>
 
-          {origin === "customer" && (
-            <div>
-              <dt className="text-[#756B60]">Customer</dt>
-              <dd className="font-medium">
-                {selectedCustomer?.name ?? "Unknown customer"}
-              </dd>
-            </div>
-          )}
+          <div>
+            <dt className="text-[#756B60]">Customer</dt>
+            <dd className="font-medium">
+              {customerId
+                ? selectedCustomer?.name ?? "Unknown customer"
+                : "No customer linked"}
+            </dd>
+          </div>
 
           <div>
             <dt className="text-[#756B60]">Priority</dt>
@@ -250,28 +252,30 @@ export default function CreateCaseForm({
         </select>
       </div>
 
-      {origin === "customer" && (
-        <div>
-          <label htmlFor="create-customer" className="mb-1 block text-sm">
-            Customer
-          </label>
-          <select
-            id="create-customer"
-            value={customerId}
-            onChange={(event) => setCustomerId(event.target.value)}
-            disabled={saving || loadingOptions}
-            required
-            className="w-full rounded border p-2 text-sm"
-          >
-            <option value="">Select customer</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div>
+        <label htmlFor="create-customer" className="mb-1 block text-sm">
+          Customer {origin === "internal" ? "(optional)" : "(required)"}
+        </label>
+        <select
+          id="create-customer"
+          value={customerId}
+          onChange={(event) => setCustomerId(event.target.value)}
+          disabled={saving || loadingOptions}
+          required={origin === "customer"}
+          className="w-full rounded border p-2 text-sm"
+        >
+          <option value="">
+            {origin === "internal"
+              ? "No customer linked"
+              : "Select customer"}
+          </option>
+          {customers.map((customer) => (
+            <option key={customer.id} value={customer.id}>
+              {customer.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div>
         <label htmlFor="create-title" className="mb-1 block text-sm">
