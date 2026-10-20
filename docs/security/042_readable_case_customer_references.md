@@ -90,3 +90,29 @@ Migration 042 has not yet been deployed to hosted Supabase.
 
 No changes to existing case-lock functions or audit triggers were
 required for this feature.
+
+## 7. Hosted Security Verification
+
+**Date:** 20 October 2026
+
+**Status:** Completed checks passed.
+
+Hosted PostgreSQL inspection confirmed:
+
+- 15 queue return columns
+- All three readable-reference columns present
+- Anonymous function EXECUTE denied
+- Authenticated function EXECUTE granted
+- Service-role function EXECUTE granted
+- SECURITY DEFINER enabled
+- STABLE function attribute retained
+- Organisation filter present
+- Organisation-scoped customer join present
+
+Browser checks confirmed that an existing internal case and an
+existing customer-linked case could be opened and exited normally.
+
+No changes were made to existing case-lock functions.
+
+Outstanding security work includes adversarial cross-tenant testing
+against hosted data, concurrent-lock testing and independent review.

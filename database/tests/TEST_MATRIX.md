@@ -239,3 +239,17 @@ The hosted database has not yet received Migration 042.
 Detailed assessment:
 
 `docs/security/042_readable_case_customer_references.md`
+
+### Migration 042 — Hosted verification update
+
+**Date:** 20 October 2026
+
+| Test ID | Verification | Status |
+|---|---|---|
+| READ-11 | Final TypeScript, ESLint and production build | PASS |
+| READ-12 | Hosted migration, RPC signature and permission inspection | PASS |
+| READ-13 | Hosted queue and case-detail browser verification | PASS |
+
+This update supersedes the earlier PENDING entries for READ-11
+through READ-13. Hosted concurrent-lock and broader adversarial
+tenant-isolation testing remain outstanding.

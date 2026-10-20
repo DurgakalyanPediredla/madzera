@@ -110,3 +110,29 @@ Outstanding:
 - Complete broader production security assessment
 
 Local regression tests do not establish production readiness.
+
+## 7. Hosted Deployment and Browser Verification
+
+**Date:** 20 October 2026
+
+**Status:** Hosted deployment and tested browser workflows passed.
+
+Migration 042 was deployed successfully to hosted Supabase PostgreSQL
+17.11, completing with COMMIT.
+
+Post-deployment inspection confirmed 15 queue return columns, including
+all three readable-reference columns.
+
+Browser verification confirmed:
+
+- Readable case references in the case queue
+- Readable customer references and names in the case queue
+- Internal case without a customer displays `No customer linked`
+- Internal case `CAS2026000004` opens successfully
+- Case detail heading displays the readable case reference
+- Customer-linked case displays its readable customer reference
+- Existing case-opening and normal exit workflows operate as expected
+
+These results supersede the earlier local-only deployment status
+recorded in this document. They do not constitute comprehensive
+concurrency or production security testing.

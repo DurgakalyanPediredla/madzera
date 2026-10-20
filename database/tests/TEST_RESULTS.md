@@ -956,3 +956,52 @@ Feature documentation:
 Security assessment:
 
 `docs/security/042_readable_case_customer_references.md`
+
+### Migration 042 — Hosted deployment results
+
+**Date:** 20 October 2026
+
+**Result:** PASS for completed deployment and browser checks.
+
+Hosted migration output:
+
+```text
+BEGIN
+DROP FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+COMMIT
+Migration exit code: 0
+```
+
+Hosted inspection returned:
+
+```text
+total_columns: 15
+readable_reference_columns: 3
+anon_can_execute: false
+authenticated_can_execute: true
+service_role_can_execute: true
+security_definer: true
+stable: true
+organisation_filter_present: true
+customer_tenant_join_present: true
+```
+
+Frontend validation completed with:
+
+- TypeScript exit code 0
+- ESLint exit code 0, with one existing warning
+- Production build exit code 0
+
+User-confirmed browser checks:
+
+- Readable case and customer references in the queue
+- Internal case `CAS2026000004` displays its readable reference
+- Internal case without customer displays `No customer linked`
+- Customer-linked case displays a readable customer reference
+- Existing case opening and normal exit operate as expected
+
+The tests did not independently verify simultaneous locking
+behaviour or comprehensive hosted tenant-isolation attacks.
