@@ -111,3 +111,45 @@ Earlier tests describe the database permissions at the time of execution. Later 
 - PENDING: Requirement not yet fully implemented or verified.
 
 These results apply to the development environment and do not establish production security readiness.
+
+## 9. Structured References — 20 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migration:** `040_structured_customer_case_references.sql`
+
+**Regression test:** `024_structured_references.sql`
+
+| Test ID | Security or integrity requirement | Verification | Status |
+|---|---|---|---|
+| REF-01 | Existing customer and case references populated and unique | Post-migration SQL assertions | PASS |
+| REF-02 | Customer numbering isolated by organisation | Test 024 inserted customers in two organisations | PASS |
+| REF-03 | Case numbering isolated by organisation | Test 024 inserted cases in two organisations | PASS |
+| REF-04 | Case numbering resets by UTC year | Test 024 inserted a case in the following year | PASS |
+| REF-05 | Customer references cannot be modified | Test 024 rejected a reference UPDATE | PASS |
+| REF-06 | Case references cannot be modified | Test 024 rejected a reference UPDATE | PASS |
+| REF-07 | Private reference counters are inaccessible to application roles | PostgreSQL privilege inspection and Test 024 | PASS |
+| REF-08 | Authenticated case creation generates a reference and audit event | Test 024 exercised create_employee_case RPC | PASS |
+| REF-09 | Concurrent committed case inserts receive distinct references | Two concurrent committed inserts | PASS |
+| REF-10 | Regression tests leave no persistent test records | Post-test database count and counter inspection | PASS |
+| REF-11 | Existing case-update audit trigger remains enabled | PostgreSQL trigger inspection returned O | PASS |
+| REF-12 | Hosted migration and API behaviour | Not yet deployed or tested | PENDING |
+| REF-13 | Frontend business-reference integration | Not yet implemented or verified | PENDING |
+
+### Evidence and limitations
+
+Test 024 completed successfully with transaction rollback.
+
+Post-test verification confirmed one original customer, two original
+cases, no Test 024 records, unchanged counters and an enabled
+case-update audit trigger.
+
+A separate concurrency test committed two case inserts, generating
+CAS2026000002 and CAS2026000003. Both test cases were subsequently
+deleted; their committed counter values remained consumed.
+
+These checks apply to the local development database. They do not
+establish hosted deployment success or production security readiness.
+
+Detailed assessment:
+`docs/security/040_structured_references.md`

@@ -624,3 +624,130 @@ Earlier sections may describe permissions that were subsequently
 replaced by stricter RPC-based access controls.
 
 The latest observed results do not establish production readiness.
+
+---
+
+## Structured References — 20 October 2026
+
+### Environment and scope
+
+- Project: Madzera
+- Database: Local Supabase PostgreSQL
+- Migration: `040_structured_customer_case_references.sql`
+- Regression test: `024_structured_references.sql`
+- Execution method: Docker PostgreSQL client (`psql`)
+- Hosted deployment: Not performed
+
+### Migration execution
+
+Migration 040 completed successfully against local PostgreSQL.
+
+The migration added structured customer and case references,
+organisation-scoped counter allocation, uniqueness constraints
+and reference-protection triggers.
+
+Historical records were backfilled.
+
+The existing case-update audit trigger was re-enabled before
+the migration transaction committed.
+
+### Regression Test 024
+
+**Status: PASS**
+
+The SQL test completed successfully with no reported errors.
+
+The execution produced the following successful notices:
+
+| Verification | Result |
+|---|---|
+| Existing references populated and unique | PASS |
+| Customer reference generation and tenant counters | PASS |
+| Case reference generation and tenant counters | PASS |
+| Annual UTC case counter reset | PASS |
+| Customer reference immutable | PASS |
+| Case reference immutable | PASS |
+| Private counter permissions | PASS |
+| Authenticated case creation RPC | PASS |
+| Authenticated RPC reference and audit event | PASS |
+
+The test completed with `ROLLBACK`.
+
+The shell output reported exit code `0`. This was consistent with
+the successful SQL execution and absence of PostgreSQL errors,
+although the command printed the exit status of the final echo
+rather than explicitly preserving the psql process exit status.
+
+### Committed concurrency verification
+
+**Status: PASS**
+
+Two concurrent transactions inserted cases into the same
+organisation and committed successfully.
+
+Generated references:
+
+- `CAS2026000002`
+- `CAS2026000003`
+
+The references were unique and consecutive.
+
+Both temporary cases were subsequently deleted.
+
+The committed counter remained at `3`.
+
+An earlier rollback-based concurrency attempt produced the same
+reference in two transactions because the first allocation was
+rolled back. This is expected transactional counter behaviour,
+not evidence of duplicate committed references.
+
+### Post-regression database integrity
+
+**Status: PASS**
+
+| Verification | Observed result |
+|---|---|
+| Existing customers | 1 |
+| Existing cases | 2 |
+| Test 024 cases remaining | 0 |
+| Test 024 customers remaining | 0 |
+| Organisation A, case counter, 2026 | 3 |
+| Organisation A, customer counter | 1 |
+| Organisation B, case counter, 2026 | 1 |
+| `trg_audit_case_update` | Enabled (`O`) |
+
+These values matched the expected post-test state.
+
+### Additional permission verification
+
+Local role-based customer INSERT attempts were rejected for:
+
+- `anon`
+- `authenticated`
+
+Private counter privilege inspection confirmed restricted direct
+access for the inspected application roles.
+
+These tests do not replace a comprehensive API-level security
+assessment.
+
+### Documentation
+
+- `docs/features/040_structured_references.md`
+- `docs/security/040_structured_references.md`
+- `database/tests/TEST_MATRIX.md`
+
+### Outstanding verification
+
+- Hosted Supabase migration and post-deployment checks
+- Frontend display and API integration of business references
+- TypeScript and browser regression after frontend changes
+- Broader adversarial and cross-organisation security testing
+- Independent production security review
+
+### Evidence interpretation
+
+Migration 040 is implemented and regression-tested locally.
+
+These results do not establish hosted deployment success,
+complete security coverage or production readiness.

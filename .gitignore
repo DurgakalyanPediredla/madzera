@@ -1,0 +1,3 @@
+
+# Local database backups (never commit)
+/database/backups/
