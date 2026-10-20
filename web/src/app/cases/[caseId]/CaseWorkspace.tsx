@@ -16,6 +16,7 @@ type CaseWorkspaceProps = {
 
 type CaseRecord = {
   id: string;
+  case_reference: string;
   title: string;
   description: string | null;
   status: string;
@@ -101,6 +102,15 @@ export default function CaseWorkspace({
     status: "loading",
   });
   const [showLoadingSkeleton, setShowLoadingSkeleton] = useState(false);
+  const [customerReference, setCustomerReference] = useState<{
+    caseId: string;
+    customerId: string;
+    reference: string;
+  } | null>(null);
+  const [customerReferenceError, setCustomerReferenceError] = useState<{
+    caseId: string;
+    customerId: string;
+  } | null>(null);
 
   useEffect(() => {
     if (session.status !== "loading") {
@@ -113,6 +123,55 @@ export default function CaseWorkspace({
 
     return () => window.clearTimeout(timer);
   }, [session.status]);
+
+  const activeCustomerId =
+    session.status === "acquired" ? session.record.customer_id : null;
+
+  useEffect(() => {
+    if (!activeCustomerId) {
+      return;
+    }
+
+    const customerId = activeCustomerId;
+    let active = true;
+
+    async function loadCustomerReference() {
+      try {
+        const { data, error } = await supabase.rpc("get_case_queue");
+        if (error) throw error;
+
+        const row = (
+          (data ?? []) as Array<{
+            case_id: string;
+            customer_reference: string | null;
+          }>
+        ).find((item) => item.case_id === caseId);
+
+        if (!row?.customer_reference) {
+          throw new Error("Customer reference not found");
+        }
+
+        if (active) {
+          setCustomerReference({
+            caseId,
+            customerId,
+            reference: row.customer_reference,
+          });
+          setCustomerReferenceError(null);
+        }
+      } catch {
+        if (active) {
+          setCustomerReferenceError({ caseId, customerId });
+        }
+      }
+    }
+
+    void loadCustomerReference();
+
+    return () => {
+      active = false;
+    };
+  }, [caseId, activeCustomerId]);
 
   const leaveSessionRef = useRef<null | (() => Promise<boolean>)>(null);
   const leavingRef = useRef(false);
@@ -795,7 +854,9 @@ export default function CaseWorkspace({
 
         <header className="mt-6 border-b border-[#D8CBB8] pb-5">
           <h1 className="text-2xl font-semibold">
-            Case {caseId}
+            {session.status === "acquired"
+              ? `Case ${session.record.case_reference}`
+              : "Opening case…"}
           </h1>
 
           {session.status === "acquired" && (
@@ -982,7 +1043,15 @@ export default function CaseWorkspace({
                 ["Case type", session.record.case_type?.replaceAll("_", " ") ?? "Not specified"],
                 ["Source", session.record.source.replaceAll("_", " ")],
                 ["Initiated by", session.record.initiated_by ?? "Not specified"],
-                ["Customer reference", session.record.customer_id ?? "Internal case"],
+                ["Customer reference", !session.record.customer_id
+                  ? "No customer linked"
+                  : customerReference?.caseId === caseId &&
+                      customerReference.customerId === session.record.customer_id
+                    ? customerReference.reference
+                    : customerReferenceError?.caseId === caseId &&
+                      customerReferenceError.customerId === session.record.customer_id
+                      ? "Reference unavailable"
+                      : "Loading reference…"],
                 ["Assigned team reference", session.record.assigned_team_id ?? "Unassigned"],
                 ["Priority", session.record.priority.replaceAll("_", " ")],
               ].map(([label, value]) => (

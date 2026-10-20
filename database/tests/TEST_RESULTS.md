@@ -885,3 +885,74 @@ Feature documentation:
 
 Security assessment:
 `docs/security/041_optional_customer_internal_cases.md`
+
+## Migration 042 — Readable Case and Customer References
+
+**Execution date:** 20 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migration:** `database/migrations/042_case_queue_readable_references.sql`
+
+**Test:** `database/tests/027_case_queue_readable_references.sql`
+
+**Result:** PASS
+
+### 1. Migration and privilege checks
+
+Migration 042 was applied successfully to local PostgreSQL.
+
+Function inspection confirmed:
+
+- Original queue return columns retained
+- Three readable-reference columns appended
+- `SECURITY DEFINER` and `STABLE` attributes
+- Organisation filtering and organisation-scoped customer join
+- Anonymous EXECUTE denied
+- Authenticated and service-role EXECUTE granted
+
+### 2. Regression execution
+
+The final Test 027 execution reported:
+
+```text
+BEGIN
+NOTICE: PASS: Queue function access grants
+NOTICE: PASS: Anonymous queue access denied
+NOTICE: PASS: Unlinked identity sees no queue records
+INSERT 0 1
+INSERT 0 1
+NOTICE: PASS: Employee A has 1 correctly scoped cases with valid references
+NOTICE: PASS: Employee C has 1 correctly scoped cases with valid references
+ROLLBACK
+```
+
+The temporary test-table permissions are limited to the test transaction.
+
+No direct case-table SELECT grant was introduced.
+
+### 3. Frontend checks
+
+Completed:
+
+- TypeScript checking passed
+- ESLint reported zero errors and one pre-existing warning
+
+Pending:
+
+- Final Next.js production build after latest frontend changes
+- Hosted browser verification of case queue, detail and creation success
+
+### 4. Deployment status
+
+Migration 042 has been applied locally only.
+
+Hosted migration and post-deployment security verification remain pending.
+
+Feature documentation:
+
+`docs/features/042_readable_case_customer_references.md`
+
+Security assessment:
+
+`docs/security/042_readable_case_customer_references.md`

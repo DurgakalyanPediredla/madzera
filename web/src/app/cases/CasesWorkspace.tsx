@@ -12,6 +12,7 @@ type CaseOrigin = "customer" | "internal";
 
 type QueueCase = {
   id: string;
+  reference: string;
   customer: string;
   subject: string;
   status: CaseStatus;
@@ -43,6 +44,9 @@ const emptyFilters: CaseFilters = {
 
 type QueueRow = {
   case_id: string;
+  case_reference: string;
+  customer_reference: string | null;
+  customer_name: string | null;
   case_title: string;
   case_status: string;
   customer_id: string | null;
@@ -63,9 +67,12 @@ function mapQueueRow(row: QueueRow): QueueCase {
 
   return {
     id: row.case_id,
+    reference: row.case_reference,
     customer: row.customer_id
-      ? `Customer ${row.customer_id.slice(0, 8)}`
-      : "Internal",
+      ? [row.customer_reference, row.customer_name]
+          .filter(Boolean)
+          .join(" — ")
+      : "No customer linked",
     subject: row.case_title,
     status,
     received: date.toLocaleString("en-GB", {
@@ -89,6 +96,8 @@ export default function CasesWorkspace() {
   const router = useRouter();
   const [showCreateCase, setShowCreateCase] = useState(false);
   const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
+  const [createdCaseReference, setCreatedCaseReference] = useState<string | null>(null);
+  const [referenceLookupFailed, setReferenceLookupFailed] = useState(false);
   const [cases, setCases] = useState<QueueCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -182,9 +191,10 @@ export default function CasesWorkspace() {
       return false;
     }
 
-    const matchesCaseId = caseItem.id
-      .toLowerCase()
-      .includes(appliedFilters.caseId.trim().toLowerCase());
+    const caseSearch = appliedFilters.caseId.trim().toLowerCase();
+    const matchesCaseId =
+      caseItem.reference.toLowerCase().includes(caseSearch) ||
+      caseItem.id.toLowerCase().includes(caseSearch);
 
     const matchesCustomer = caseItem.customer
       .toLowerCase()
@@ -393,9 +403,12 @@ export default function CasesWorkspace() {
                   </p>
 
                   <div className="rounded-md bg-[#F7F4EF] p-4">
-                    <p className="mb-1 text-xs text-[#756B60]">Case ID</p>
+                    <p className="mb-1 text-xs text-[#756B60]">Case reference</p>
                     <p className="break-all font-mono text-sm font-medium">
-                      {createdCaseId}
+                      {createdCaseReference ??
+                        (referenceLookupFailed
+                          ? "Reference unavailable — open the case record"
+                          : "Retrieving reference…")}
                     </p>
                   </div>
 
@@ -424,7 +437,35 @@ export default function CasesWorkspace() {
               ) : (
                 <CreateCaseForm
                   onCancel={() => setShowCreateCase(false)}
-                  onCreated={(caseId) => setCreatedCaseId(caseId)}
+                  onCreated={(caseId, origin) => {
+                    setCreatedCaseId(caseId);
+                    setCreatedCaseReference(null);
+                    setReferenceLookupFailed(false);
+                    setActiveBasket(origin);
+
+                    void (async () => {
+                      try {
+                        const { data, error } = await supabase.rpc(
+                          "get_case_queue"
+                        );
+                        if (error) throw error;
+
+                        const rows = (data ?? []) as QueueRow[];
+                        const created = rows.find(
+                          (row) => row.case_id === caseId
+                        );
+                        if (!created?.case_reference) {
+                          throw new Error("Created case reference not found");
+                        }
+
+                        setCreatedCaseReference(created.case_reference);
+                        setCases(rows.map(mapQueueRow));
+                        setLoadError(null);
+                      } catch {
+                        setReferenceLookupFailed(true);
+                      }
+                    })();
+                  }}
                 />
               )}
             </div>
@@ -472,7 +513,7 @@ export default function CasesWorkspace() {
                     <input
                       id="filter-case-id"
                       type="text"
-                      placeholder="e.g. CASE-1001"
+                      placeholder="e.g. CAS2026000001"
                       value={filters.caseId}
                       onChange={(event) =>
                         updateFilter(
@@ -698,14 +739,14 @@ export default function CasesWorkspace() {
                             className="cursor-not-allowed text-[#756B60]"
                             title={`In use by ${caseItem.lockedBy}`}
                           >
-                            {caseItem.id}
+                            {caseItem.reference}
                           </span>
                         ) : (
                           <Link
                             href={`/cases/${caseItem.id}`}
                             className="text-[#51483F] underline-offset-4 hover:underline"
                           >
-                            {caseItem.id}
+                            {caseItem.reference}
                           </Link>
                         )}
                       </td>

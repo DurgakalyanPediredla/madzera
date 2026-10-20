@@ -199,3 +199,43 @@ production security readiness.
 Detailed assessment:
 
 `docs/security/041_optional_customer_internal_cases.md`
+
+## 11. Readable Case and Customer References — 20 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migration:** `042_case_queue_readable_references.sql`
+
+**Regression:** `027_case_queue_readable_references.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| READ-01 | Anonymous queue execution denied | Test 027 | PASS |
+| READ-02 | Authenticated queue execution permitted | Test 027 | PASS |
+| READ-03 | Unlinked identity receives no cases | Test 027 | PASS |
+| READ-04 | Employee A sees only Organisation A cases | Test 027 | PASS |
+| READ-05 | Employee C sees only Organisation B cases | Test 027 | PASS |
+| READ-06 | Queue case references match stored references | Test 027 | PASS |
+| READ-07 | Customer references and names match linked customers | Test 027 | PASS |
+| READ-08 | Cases without customers retain null customer details | Test 027 | PASS |
+| READ-09 | Queue counts match organisation case counts | Test 027 | PASS |
+| READ-10 | Regression test leaves no persistent changes | Transaction ROLLBACK | PASS |
+| READ-11 | Final frontend production build | Not yet rerun | PENDING |
+| READ-12 | Hosted database migration and RPC verification | Not yet deployed | PENDING |
+| READ-13 | Hosted browser verification of readable references | Not yet executed | PENDING |
+
+### Evidence and limitations
+
+Test 027 passed on 20 October 2026 against local PostgreSQL.
+
+The test verified one organisation-scoped case for Employee A and
+one for Employee C. It completed with `ROLLBACK`.
+
+Authenticated access used the existing queue RPC, not direct case-table
+SELECT permissions.
+
+The hosted database has not yet received Migration 042.
+
+Detailed assessment:
+
+`docs/security/042_readable_case_customer_references.md`
