@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import {
+  getCaseEvidence,
+  downloadCaseEvidence,
+  type CaseEvidenceAttachment,
+} from "@/lib/caseEvidence";
 import CaseActivityEditor from "./CaseActivityEditor";
 import {
   readSavedCaseSession,
@@ -205,6 +210,10 @@ export default function CaseWorkspace({
   const activitySavingRef = useRef(false);
   const activitySessionRef = useRef<string | null>(null);
   const activityRequestRef = useRef(0);
+  const [caseEvidence, setCaseEvidence] = useState<CaseEvidenceAttachment[]>([]);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const evidenceRequestRef = useRef(0);
 
   const [activeCaseTab, setActiveCaseTab] =
     useState<"record" | "audit">("record");
@@ -253,6 +262,106 @@ export default function CaseWorkspace({
     } finally {
       if (isCurrentRequest()) {
         setAuditLoading(false);
+      }
+    }
+  }
+
+  const [downloadingEvidenceId, setDownloadingEvidenceId] =
+    useState<string | null>(null);
+  const [evidenceDownloadError, setEvidenceDownloadError] =
+    useState<string | null>(null);
+  const evidenceDownloadRef = useRef(false);
+
+  async function handleEvidenceDownload(attachment: CaseEvidenceAttachment) {
+    if (
+      session.status !== "acquired" ||
+      leavingRef.current ||
+      evidenceDownloadRef.current
+    ) {
+      return;
+    }
+
+    const lockToken = session.token;
+    evidenceDownloadRef.current = true;
+    setDownloadingEvidenceId(attachment.id);
+    setEvidenceDownloadError(null);
+
+    try {
+      const blob = await downloadCaseEvidence(
+        caseId,
+        lockToken,
+        attachment.id
+      );
+
+      if (
+        activitySessionRef.current !== lockToken ||
+        leavingRef.current
+      ) {
+        throw new Error("Case access changed during download.");
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+
+      try {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = attachment.file_name;
+        document.body.appendChild(link);
+
+        try {
+          link.click();
+        } finally {
+          link.remove();
+        }
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    } catch (cause) {
+      if (
+        activitySessionRef.current === lockToken &&
+        !leavingRef.current
+      ) {
+        setEvidenceDownloadError(
+          cause instanceof Error
+            ? cause.message
+            : "Unable to download evidence."
+        );
+      }
+    } finally {
+      evidenceDownloadRef.current = false;
+      setDownloadingEvidenceId(null);
+    }
+  }
+
+  async function loadCaseEvidence(lockToken: string) {
+    const requestId = ++evidenceRequestRef.current;
+
+    const isCurrentRequest = () =>
+      activitySessionRef.current === lockToken &&
+      evidenceRequestRef.current === requestId &&
+      !leavingRef.current;
+
+    if (!isCurrentRequest()) return;
+
+    setEvidenceLoading(true);
+    setEvidenceError(null);
+
+    try {
+      const attachments = await getCaseEvidence(caseId, lockToken);
+
+      if (!isCurrentRequest()) return;
+      setCaseEvidence(attachments);
+    } catch (cause) {
+      if (!isCurrentRequest()) return;
+
+      setEvidenceError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to load case evidence."
+      );
+    } finally {
+      if (isCurrentRequest()) {
+        setEvidenceLoading(false);
       }
     }
   }
@@ -397,7 +506,7 @@ export default function CaseWorkspace({
     }
   }
 
-  async function handleSaveActivity(body: string): Promise<void> {
+  async function handleSaveActivity(body: string): Promise<string> {
     if (
       session.status !== "acquired" ||
       activitySavingRef.current ||
@@ -415,7 +524,7 @@ export default function CaseWorkspace({
     setActivityError(null);
 
     try {
-      const { error } = await supabase.rpc(
+      const { data: commentId, error } = await supabase.rpc(
         "save_employee_case_comment",
         {
           p_case_id: caseId,
@@ -428,9 +537,17 @@ export default function CaseWorkspace({
         throw new Error(error.message);
       }
 
-      // The comment has been saved. A refresh failure must not
-      // cause the employee to submit the same comment again.
-      await loadActivityComments(lockToken);
+      if (!commentId || typeof commentId !== "string") {
+        throw new Error(
+          "Comment save returned no ID. Check the activity record before retrying."
+        );
+      }
+
+      // The comment is committed. Refreshing the activity list must
+      // never invalidate the returned ID or cause a duplicate submission.
+      void loadActivityComments(lockToken);
+      void loadAuditHistory(lockToken);
+      return commentId;
     } finally {
       activitySavingRef.current = false;
       setActivitySaving(false);
@@ -472,6 +589,7 @@ export default function CaseWorkspace({
       if (!navigationStarted && session.status === "acquired") {
         activitySessionRef.current = session.token;
         void loadActivityComments(session.token);
+        void loadCaseEvidence(session.token);
         void loadAuditHistory(session.token);
       }
     }
@@ -487,9 +605,13 @@ export default function CaseWorkspace({
     function invalidateActivityAccess() {
       activitySessionRef.current = null;
       activityRequestRef.current += 1;
+      evidenceRequestRef.current += 1;
       auditRequestRef.current += 1;
       setActivityLoading(false);
       setActivityComments([]);
+      setEvidenceLoading(false);
+      setCaseEvidence([]);
+      setEvidenceError(null);
       setAuditLoading(false);
       setAuditEvents([]);
     }
@@ -581,6 +703,7 @@ export default function CaseWorkspace({
         if (activitySessionRef.current !== token) {
           activitySessionRef.current = token;
           void loadActivityComments(token);
+          void loadCaseEvidence(token);
           void loadAuditHistory(token);
         }
 
@@ -737,6 +860,7 @@ export default function CaseWorkspace({
 
       activitySessionRef.current = confirmedToken;
       void loadActivityComments(confirmedToken);
+      void loadCaseEvidence(confirmedToken);
       void loadAuditHistory(confirmedToken);
 
       scheduleExpiryCheck(expiresAt);
@@ -1082,7 +1206,21 @@ export default function CaseWorkspace({
                   Internal work updates and handover comments.
                 </p>
               </div>
-              <CaseActivityEditor onSave={handleSaveActivity} />
+              <CaseActivityEditor
+                  onSave={handleSaveActivity}
+                  onEvidenceUploadActiveChange={(active) => {
+                    activitySavingRef.current = active;
+                    setActivitySaving(active);
+                  }}
+                  onEvidenceUploaded={() => {
+                    if (session.status === "acquired") {
+                      void loadCaseEvidence(session.token);
+                      void loadAuditHistory(session.token);
+                    }
+                  }}
+                  caseId={caseId}
+                  lockToken={session.token}
+                />
             </div>
 
             {activityError && (
@@ -1091,20 +1229,103 @@ export default function CaseWorkspace({
               </p>
             )}
 
-            {activityLoading ? (
+            {caseEvidence.some(
+                (attachment) => attachment.comment_id === null
+              ) && (
+                <section className="mt-4 rounded-lg border border-[#EAE4D9] bg-[#FAF9F6] p-3">
+                  <h4 className="text-sm font-semibold text-[#39352F]">
+                    Other Case Evidence
+                  </h4>
+                  <p className="mt-1 text-xs text-[#756B60]">
+                    Finalised attachments not linked to an activity comment.
+                  </p>
+                  <ul className="mt-4 space-y-3">
+                    {caseEvidence
+                      .filter((attachment) => attachment.comment_id === null)
+                      .map((attachment) => (
+                        <li
+                          key={attachment.id}
+                          className="rounded-md border border-[#EAE4D9] bg-white px-3 py-2"
+                        >
+                          <p className="break-words text-sm font-medium leading-5 text-[#39352F]">
+                            {attachment.file_name}
+                          </p>
+                          <p className="mt-1 text-xs text-[#756B60]">
+                            {attachment.uploaded_by_name}
+                            {" · "}
+                            {new Date(attachment.created_at).toLocaleString(
+                              "en-GB",
+                              {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                                timeZone: "Europe/London",
+                              }
+                            )}
+                            {" · "}
+                            {(attachment.file_size_bytes / 1024).toFixed(1)}
+                            {" KB"}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleEvidenceDownload(attachment)
+                            }
+                            disabled={downloadingEvidenceId !== null}
+                            className="mt-2 rounded-md border border-[#C9BBA7] px-2.5 py-1 text-xs font-medium text-[#39352F] hover:bg-[#F4F0E9] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {downloadingEvidenceId === attachment.id
+                              ? "Downloading..."
+                              : "Download"}
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                </section>
+              )}
+
+              {evidenceDownloadError && (
+                <p role="alert" className="mt-4 text-sm text-red-700">
+                  Evidence download failed: {evidenceDownloadError}
+                </p>
+              )}
+
+              {evidenceLoading && (
+                <p role="status" className="mt-4 text-sm text-[#756B60]">
+                  Loading supporting evidence...
+                </p>
+              )}
+
+              {evidenceError && (
+                <div className="mt-4">
+                  <p role="alert" className="text-sm text-red-700">
+                    Supporting evidence could not be loaded: {evidenceError}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void loadCaseEvidence(session.token)}
+                    className="mt-2 text-sm text-[#51483F] underline"
+                  >
+                    Retry evidence loading
+                  </button>
+                </div>
+              )}
+
+              {activityLoading ? (
               <p className="mt-6 text-sm text-[#756B60]">
                 Loading case activity...
               </p>
             ) : activityComments.length === 0 ? (
               <p className="mt-6 text-sm text-[#756B60]">
-                No internal activity recorded yet.
+                {caseEvidence.length > 0
+                  ? "No written updates yet. Supporting evidence is shown above."
+                  : "No internal activity recorded yet."}
               </p>
             ) : (
-              <div className="mt-6 space-y-4">
+              <div className="mt-4 space-y-2">
                 {activityComments.map((activity) => (
                   <article
                     key={activity.id}
-                    className="rounded-lg border border-[#EAE4D9] bg-[#FAF9F6] p-5"
+                    className="rounded-lg border border-[#EAE4D9] bg-[#FAF9F6] px-4 py-3"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-semibold">
@@ -1124,9 +1345,82 @@ export default function CaseWorkspace({
                         )}
                       </time>
                     </div>
-                    <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-5 text-[#39352F]">
                       {activity.body}
                     </p>
+
+                    <div className="mt-4 flex justify-end">
+                      <CaseActivityEditor
+                        existingCommentId={activity.id}
+                        onSave={handleSaveActivity}
+                        onEvidenceUploadActiveChange={(active) => {
+                          activitySavingRef.current = active;
+                          setActivitySaving(active);
+                        }}
+                        onEvidenceUploaded={() => {
+                          if (session.status === "acquired") {
+                            void loadCaseEvidence(session.token);
+                            void loadAuditHistory(session.token);
+                          }
+                        }}
+                        caseId={caseId}
+                        lockToken={session.token}
+                      />
+                    </div>
+
+                      {caseEvidence.filter(
+                        (attachment) => attachment.comment_id === activity.id
+                      ).length > 0 && (
+                        <div className="mt-4 border-t border-[#EAE4D9] pt-4">
+                          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#756B60]">
+                            Supporting Evidence
+                          </p>
+                          <ul className="space-y-3">
+                            {caseEvidence
+                              .filter(
+                                (attachment) =>
+                                  attachment.comment_id === activity.id
+                              )
+                              .map((attachment) => (
+                                <li
+                                  key={attachment.id}
+                                  className="rounded-md border border-[#EAE4D9] bg-white px-3 py-2"
+                                >
+                                  <p className="break-words text-sm font-medium leading-5 text-[#39352F]">
+                                    {attachment.file_name}
+                                  </p>
+                                  <p className="mt-1 text-xs text-[#756B60]">
+                                    {attachment.uploaded_by_name}
+                                    {" · "}
+                                    {new Date(
+                                      attachment.created_at
+                                    ).toLocaleString("en-GB", {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                      timeZone: "Europe/London",
+                                    })}
+                                    {" · "}
+                                    {(attachment.file_size_bytes / 1024).toFixed(1)}
+                                    {" KB"}
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleEvidenceDownload(attachment)
+                                    }
+                                    disabled={downloadingEvidenceId !== null}
+                                    className="mt-2 rounded-md border border-[#C9BBA7] px-2.5 py-1 text-xs font-medium text-[#39352F] hover:bg-[#F4F0E9] disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {downloadingEvidenceId === attachment.id
+                                      ? "Downloading..."
+                                      : "Download"}
+                                  </button>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
                   </article>
                 ))}
               </div>
@@ -1184,6 +1478,7 @@ export default function CaseWorkspace({
                         case_closed_view: "Case view closed",
                         case_updated: "Case updated",
                         case_information_updated: "Case information updated",
+                          comment_added: "Comment added",
                       };
 
                       const changes = [
