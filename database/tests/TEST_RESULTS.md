@@ -1228,3 +1228,52 @@ uploads and recovery lifecycle correctness remain unverified.
 **Conclusion:** All 11 local Storage upload security checks
 passed, and the post-test inspection found no remaining
 synthetic fixtures.
+
+## Migrations 051–052 — Case Evidence Upload Recovery Security
+
+**Date:** 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Regression:** `032_case_evidence_upload_recovery_security.sql`
+
+**Result:** PASS — 11 checks, ROLLBACK, exit status 0.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Synthetic recovery fixtures created | PASS |
+| Pending recovery status verified | PASS |
+| Expired recovery status verified | PASS |
+| Completed recovery status and attachment verified | PASS |
+| Own reservation listing and statuses verified | PASS |
+| Incorrect token denied by recovery-status function | PASS |
+| Incorrect token denied by reservation-listing function | PASS |
+| Unlinked identity denied recovery status | PASS |
+| Unlinked identity denied reservation listing | PASS |
+| Expired lock denied recovery status | PASS |
+| Expired lock denied reservation listing | PASS |
+
+### Post-test database integrity
+
+| Verification | Observed result |
+|---|---|
+| SQL exit status | 0 |
+| Transaction ended with ROLLBACK | Yes |
+| Remaining synthetic reservations | 0 |
+| Remaining synthetic attachments | 0 |
+| Original case lock expired | true |
+
+### Limitations
+
+The initial execution failed because of a malformed employee UUID
+in the test fixture. PostgreSQL rolled back the transaction,
+and independent inspection confirmed no remaining synthetic records.
+The fixture was corrected and the subsequent execution passed.
+
+This test validates recovery-status reporting and reservation
+listing under selected authentication and lock conditions.
+It does not verify cross-employee or cross-organisation isolation,
+missing-attachment handling, concurrent recovery, actual upload
+resolution or hosted-environment behaviour.

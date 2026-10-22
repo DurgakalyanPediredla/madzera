@@ -455,3 +455,50 @@ Storage API deletion permissions.
 This regression does not establish hosted Storage API behaviour,
 cross-organisation isolation, concurrent-request safety or
 full production security readiness.
+
+## 16. Case Evidence Upload Recovery Security — 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migrations:** `051_get_case_evidence_upload_recovery_status.sql`,
+`052_list_employee_case_evidence_upload_reservations.sql`
+
+**Regression:** `032_case_evidence_upload_recovery_security.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| EVR-01 | Synthetic recovery fixtures created | Test 032 | PASS |
+| EVR-02 | Pending reservation reports pending | Test 032 | PASS |
+| EVR-03 | Expired pending reservation reports expired | Test 032 | PASS |
+| EVR-04 | Completed reservation returns matching attachment | Test 032 | PASS |
+| EVR-05 | Employee reservation listing returns expected statuses | Test 032 | PASS |
+| EVR-06 | Incorrect lock token denied by recovery status | Test 032 | PASS |
+| EVR-07 | Incorrect lock token denied by reservation listing | Test 032 | PASS |
+| EVR-08 | Unlinked identity denied recovery status | Test 032 | PASS |
+| EVR-09 | Unlinked identity denied reservation listing | Test 032 | PASS |
+| EVR-10 | Expired lock denies recovery status | Test 032 | PASS |
+| EVR-11 | Expired lock denies reservation listing | Test 032 | PASS |
+| EVR-12 | Transaction rollback and fixture integrity | Independent inspection | PASS |
+| EVR-13 | Cross-employee and cross-organisation isolation | Not executed | PENDING |
+| EVR-14 | Completed reservation without matching attachment | Not executed | PENDING |
+| EVR-15 | Concurrent recovery and upload-resolution workflows | Not executed | PENDING |
+
+### Evidence and limitations
+
+Test 032 passed locally on 22 October 2026 with 11 PASS notices,
+ROLLBACK and exit status 0.
+
+The regression exercises the existing recovery-status and
+employee-reservation-listing functions under the authenticated
+PostgreSQL role using transaction-scoped synthetic fixtures.
+
+An independent post-test inspection confirmed zero remaining
+synthetic reservations and attachments. The original case lock
+remained expired.
+
+The test verifies read-only recovery reporting and access checks.
+It does not establish that an interrupted upload can be resumed,
+cancelled or otherwise resolved.
+
+Cross-employee isolation, cross-organisation isolation, concurrent
+requests and hosted-environment behaviour remain unverified.
