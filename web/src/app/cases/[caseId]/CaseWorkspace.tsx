@@ -612,6 +612,7 @@ export default function CaseWorkspace({
       setEvidenceLoading(false);
       setCaseEvidence([]);
       setEvidenceError(null);
+      setEvidenceDownloadError(null);
       setAuditLoading(false);
       setAuditEvents([]);
     }
