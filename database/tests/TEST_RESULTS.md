@@ -1177,3 +1177,54 @@ cross-organisation isolation or the recovery lifecycle.
 
 **Conclusion:** All 14 local finalisation checks passed, with
 no persistent synthetic fixture changes observed.
+
+## Migration 046 — Case Evidence Storage Upload Security
+
+**Date:** 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Regression:** `031_case_evidence_storage_upload_policy.sql`
+
+**Result:** PASS — 11 checks, ROLLBACK, exit status 0.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Existing fixture prerequisites verified | PASS |
+| Synthetic reservation created | PASS |
+| Expired lock denies upload | PASS |
+| Valid reservation and lock authorised | PASS |
+| Authenticated reserved Storage INSERT succeeded | PASS |
+| Unreserved Storage path rejected | PASS |
+| Wrong Storage bucket rejected | PASS |
+| Authenticated Storage UPDATE denied | PASS |
+| Direct Storage DELETE rejected by protection trigger | PASS |
+| Unlinked identity denied | PASS |
+| Expired reservation denied | PASS |
+
+### Post-test database integrity
+
+| Verification | Observed result |
+|---|---|
+| Remaining synthetic Storage buckets | 0 |
+| Remaining synthetic reservations | 0 |
+| Remaining matching synthetic Storage objects | 0 |
+| Original case lock expired | true |
+
+### Limitations
+
+The test uses local SQL fixtures rather than a real Storage API
+upload. It exercises actual INSERT RLS under the authenticated
+PostgreSQL role.
+
+The direct DELETE assertion verifies Supabase's protection
+trigger, not Storage API deletion authorisation.
+
+Hosted behaviour, cross-organisation isolation, concurrent
+uploads and recovery lifecycle correctness remain unverified.
+
+**Conclusion:** All 11 local Storage upload security checks
+passed, and the post-test inspection found no remaining
+synthetic fixtures.

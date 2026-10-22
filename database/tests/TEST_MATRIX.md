@@ -406,3 +406,52 @@ This is local SQL regression evidence. It does not establish
 hosted deployment behaviour, real Storage API uploads, Storage
 INSERT policy enforcement, cross-organisation isolation,
 concurrent-request safety or recovery workflow correctness.
+
+## 15. Case Evidence Storage Upload Security — 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migration:** `046_case_evidence_storage_upload_policy.sql`
+
+**Regression:** `031_case_evidence_storage_upload_policy.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| EVS-01 | Existing fixture prerequisites verified | Test 031 | PASS |
+| EVS-02 | Synthetic upload reservation created | Test 031 | PASS |
+| EVS-03 | Expired case lock denies upload | Test 031 | PASS |
+| EVS-04 | Valid reservation and lock authorise upload | Test 031 | PASS |
+| EVS-05 | Authenticated Storage INSERT succeeds | Test 031 | PASS |
+| EVS-06 | Unreserved Storage path rejected | Test 031 | PASS |
+| EVS-07 | Wrong Storage bucket rejected | Test 031 | PASS |
+| EVS-08 | Authenticated Storage UPDATE affects zero rows | Test 031 | PASS |
+| EVS-09 | Direct Storage DELETE rejected by protection trigger | Test 031 | PASS |
+| EVS-10 | Unlinked authenticated identity denied | Test 031 | PASS |
+| EVS-11 | Expired upload reservation denied | Test 031 | PASS |
+| EVS-12 | Transaction rollback and fixture integrity | Independent inspection | PASS |
+| EVS-13 | Storage API upload and deletion security | Not executed | PENDING |
+| EVS-14 | Cross-organisation and concurrent uploads | Not executed | PENDING |
+
+### Evidence and limitations
+
+Test 031 passed locally on 22 October 2026 with 11 PASS
+notices, ROLLBACK and exit status 0.
+
+The regression exercises actual Storage INSERT row-level security
+under the authenticated PostgreSQL role, alongside checks of
+the existing upload-authorisation helper.
+
+A temporary Storage bucket and synthetic upload reservation
+are created inside the transaction.
+
+An independent post-test inspection confirmed zero remaining
+test buckets, test reservations and matching synthetic Storage
+objects. The original case lock remained expired.
+
+The direct DELETE check is blocked by Supabase's Storage
+protection trigger. It does not independently establish
+Storage API deletion permissions.
+
+This regression does not establish hosted Storage API behaviour,
+cross-organisation isolation, concurrent-request safety or
+full production security readiness.
