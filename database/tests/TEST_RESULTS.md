@@ -1122,3 +1122,58 @@ These areas remain pending separate verification.
 **Conclusion:** All nine tested local upload-preparation
 security conditions passed, with no persistent fixture changes
 observed in the post-test integrity inspection.
+
+## Migration 047 — Case Evidence Upload Finalisation Security
+
+**Date:** 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Regression:** `030_case_evidence_upload_finalisation.sql`
+
+**Result:** PASS — 14 checks, ROLLBACK, exit status 0.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Synthetic finalisation fixtures created | PASS |
+| Nonexistent reservation rejected | PASS |
+| Incorrect lock token rejected | PASS |
+| Missing Storage object rejected | PASS |
+| Mismatched Storage metadata rejected | PASS |
+| Expired reservation rejected | PASS |
+| Invalid activity association rejected | PASS |
+| Valid authenticated employee finalisation | PASS |
+| Repeated finalisation rejected | PASS |
+| Attachment metadata and activity link verified | PASS |
+| Reservation marked completed | PASS |
+| Evidence-upload audit event verified | PASS |
+| Exactly one attachment for the synthetic upload | PASS |
+| Exactly one corresponding evidence-upload audit event | PASS |
+
+The final execution produced 14 PASS notices, completed with
+ROLLBACK and returned exit status 0.
+
+### Post-test database integrity
+
+An independent read-only inspection confirmed:
+
+| Verification | Observed result |
+|---|---|
+| Remaining synthetic reservations | 0 |
+| Remaining synthetic attachments | 0 |
+| Matching synthetic Storage objects | 0 |
+| Original case lock expired | true |
+
+### Limitations
+
+This regression uses synthetic database fixtures and invokes
+the finalisation RPC under the authenticated PostgreSQL role.
+
+It does not perform a real Storage API upload or independently
+verify hosted behaviour, Storage INSERT policies, concurrency,
+cross-organisation isolation or the recovery lifecycle.
+
+**Conclusion:** All 14 local finalisation checks passed, with
+no persistent synthetic fixture changes observed.

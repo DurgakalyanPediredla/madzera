@@ -351,3 +351,58 @@ reservations remained, and five completed reservations were preserved.
 This is local SQL regression evidence only. It does not verify actual
 Storage uploads, hosted deployment behaviour, cross-organisation
 isolation, simultaneous requests, finalisation or recovery workflows.
+
+## 14. Case Evidence Upload Finalisation Security — 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migration:** `047_finalise_case_evidence_upload.sql`
+
+**Regression:** `030_case_evidence_upload_finalisation.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| EVF-01 | Synthetic finalisation fixtures can be established | Test 030 | PASS |
+| EVF-02 | Nonexistent reservation is rejected | Test 030 | PASS |
+| EVF-03 | Incorrect case-lock token is rejected | Test 030 | PASS |
+| EVF-04 | Missing Storage object is rejected | Test 030 | PASS |
+| EVF-05 | Mismatched Storage metadata is rejected | Test 030 | PASS |
+| EVF-06 | Expired reservation is rejected | Test 030 | PASS |
+| EVF-07 | Invalid activity association is rejected | Test 030 | PASS |
+| EVF-08 | Valid employee finalisation succeeds | Test 030 | PASS |
+| EVF-09 | Repeated finalisation is rejected | Test 030 | PASS |
+| EVF-10 | Attachment metadata and activity link are correct | Test 030 | PASS |
+| EVF-11 | Reservation is marked completed | Test 030 | PASS |
+| EVF-12 | Evidence-upload audit event is recorded | Test 030 | PASS |
+| EVF-13 | Duplicate attachment is not created | Test 030 | PASS |
+| EVF-14 | Duplicate evidence-upload audit event is not created | Test 030 | PASS |
+| EVF-15 | Synthetic changes are rolled back | Transaction ROLLBACK and independent database inspection | PASS |
+| EVF-16 | Hosted finalisation and real Storage upload verification | Not executed | PENDING |
+| EVF-17 | Cross-organisation, concurrency and full recovery testing | Not executed | PENDING |
+
+### Evidence and limitations
+
+Test 030 passed locally on 22 October 2026, producing 14 PASS
+notices and completing with ROLLBACK and exit status 0.
+
+The regression exercises the existing finalisation RPC under the
+authenticated PostgreSQL role. Privileged setup creates synthetic
+reservations and Storage object metadata within the transaction.
+
+The successful path verifies attachment creation, an internal
+activity association, reservation completion and audit recording.
+Negative cases verify the expected PostgreSQL rejection category
+and message.
+
+Repeated finalisation is rejected, and the test verifies exactly
+one attachment and one corresponding audit event for the synthetic
+successful upload.
+
+An independent post-test inspection confirmed zero remaining test
+reservations, test attachments and matching synthetic Storage
+objects. The original case lock remained expired.
+
+This is local SQL regression evidence. It does not establish
+hosted deployment behaviour, real Storage API uploads, Storage
+INSERT policy enforcement, cross-organisation isolation,
+concurrent-request safety or recovery workflow correctness.
