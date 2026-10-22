@@ -1335,3 +1335,60 @@ hosted deployment remain outside this test's coverage.
 **Conclusion:** All 10 local isolation assertions passed, and
 independent inspection confirmed that temporary fixtures were
 rolled back.
+
+
+## Test 034 — Case Evidence Missing Attachment Recovery Security
+
+**Date:** 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Regression:** `034_case_evidence_missing_attachment_recovery.sql`
+
+**Result:** PASS — five assertions, ROLLBACK, exit status 0.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Completed reservation without attachment created | PASS |
+| Valid case lock established | PASS |
+| Missing attachment rejected with SQLSTATE 22023 | PASS |
+| Own reservation listing reports completed status | PASS |
+| Matching attachment returns completed status and expected ID | PASS |
+
+### Post-test database integrity
+
+| Verification | Observed result |
+|---|---|
+| SQL exit status | 0 |
+| Transaction ended with ROLLBACK | Yes |
+| Remaining synthetic reservations | 0 |
+| Remaining synthetic attachments | 0 |
+| Original case lock expired | true |
+
+### Execution history
+
+The first execution stopped with a permission error because the
+test attempted to read case_locks directly under the authenticated
+role. The transaction was rolled back and independent inspection
+confirmed no remaining synthetic fixtures.
+
+The regression was corrected to capture the existing lock token
+before switching roles. No database permissions or production
+functions were modified.
+
+The subsequent execution passed all five assertions.
+
+### Limitations
+
+The regression verifies database recovery-status behaviour using
+synthetic reservation and attachment records. It does not verify
+that an actual Storage object exists or that an interrupted
+upload can be resumed, cancelled or resolved.
+
+Concurrent requests and hosted deployment remain untested.
+
+**Conclusion:** The recovery-status function rejected a completed
+reservation without a matching attachment and returned the expected
+attachment ID once a matching record existed.

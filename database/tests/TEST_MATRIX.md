@@ -480,7 +480,7 @@ full production security readiness.
 | EVR-11 | Expired lock denies reservation listing | Test 032 | PASS |
 | EVR-12 | Transaction rollback and fixture integrity | Independent inspection | PASS |
 | EVR-13 | Cross-employee and cross-organisation isolation | Test 033 | PASS |
-| EVR-14 | Completed reservation without matching attachment | Not executed | PENDING |
+| EVR-14 | Completed reservation without matching attachment | Test 034 | PASS |
 | EVR-15 | Concurrent recovery and upload-resolution workflows | Not executed | PENDING |
 
 ### Evidence and limitations
@@ -549,3 +549,46 @@ reservation-organisation predicate after passing that boundary.
 Concurrent access, missing-attachment handling, interrupted
 upload resolution, real Storage API behaviour and hosted
 deployment behaviour remain unverified.
+
+
+## 18. Case Evidence Missing Attachment Recovery Security — 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migration:** `051_get_case_evidence_upload_recovery_status.sql`
+
+**Regression:** `034_case_evidence_missing_attachment_recovery.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| EVM-01 | Completed reservation created without attachment | Test 034 | PASS |
+| EVM-02 | Valid case lock established | Test 034 | PASS |
+| EVM-03 | Missing attachment rejected with SQLSTATE 22023 | Test 034 | PASS |
+| EVM-04 | Own reservation listing reports completed status | Test 034 | PASS |
+| EVM-05 | Matching attachment returns completed status and attachment ID | Test 034 | PASS |
+| EVM-06 | Transaction rollback and fixture integrity | Independent inspection | PASS |
+
+### Evidence and limitations
+
+Test 034 passed locally on 22 October 2026 with five PASS notices,
+ROLLBACK and exit status 0.
+
+The regression verifies that recovery-status reporting rejects a
+completed reservation without its matching attachment using
+SQLSTATE 22023 and the expected error message.
+
+A positive control confirms that the same reservation returns
+completed status and the expected attachment ID after a correctly
+linked attachment record is inserted.
+
+Independent post-test inspection confirmed zero remaining synthetic
+reservations and attachments. The original case lock remained expired.
+
+The initial execution failed because the authenticated role could
+not directly read the protected case_locks table. The test was
+corrected to capture the lock token before switching roles.
+The corrected execution passed without changing database privileges.
+
+The test does not establish actual Storage object existence,
+successful upload recovery or resolution, concurrent-request
+safety or hosted-environment behaviour.
