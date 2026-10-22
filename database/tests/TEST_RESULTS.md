@@ -1005,3 +1005,55 @@ User-confirmed browser checks:
 
 The tests did not independently verify simultaneous locking
 behaviour or comprehensive hosted tenant-isolation attacks.
+
+## Migrations 049 and 055 — Case Evidence Download Security
+
+**Date:** 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Regression:** `028_case_evidence_download_policy.sql`
+
+**Result:** PASS — seven security checks.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Expired lock denies evidence access | PASS |
+| Active employee lock permits evidence access | PASS |
+| Unlinked authenticated identity denied | PASS |
+| Authenticated Storage object retrieval | PASS |
+| Authenticated Storage metadata retrieval | PASS |
+| Storage listing operation blocked by SELECT RLS | PASS |
+| Storage deletion operation blocked by SELECT RLS | PASS |
+
+The test returned seven PASS notices and completed with ROLLBACK.
+
+The test temporarily extended an existing expired case lock
+inside a database transaction. The rollback preserved its
+original state.
+
+### Hosted verification
+
+Migration 055 was previously deployed successfully to hosted
+Supabase. Evidence downloading was subsequently confirmed
+working through the application browser.
+
+This browser verification is separate from the local SQL test.
+
+### Limitations
+
+The SQL regression was executed locally, not against the
+hosted database.
+
+The deletion-operation check verifies SELECT-policy visibility.
+It does not execute an actual DELETE request.
+
+Comprehensive hosted tenant-isolation testing, concurrent-lock
+testing and regression coverage for the remaining evidence
+migrations are still outstanding.
+
+**Conclusion:** All seven tested local evidence-download
+security conditions passed. This does not establish complete
+production security readiness.

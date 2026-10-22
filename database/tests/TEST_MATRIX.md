@@ -253,3 +253,51 @@ Detailed assessment:
 This update supersedes the earlier PENDING entries for READ-11
 through READ-13. Hosted concurrent-lock and broader adversarial
 tenant-isolation testing remain outstanding.
+
+## 12. Case Evidence Download Security — 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migrations:** `049_restricted_case_evidence_downloads.sql`,
+`055_allow_authenticated_case_evidence_metadata.sql`
+
+**Regression:** `028_case_evidence_download_policy.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| EVD-01 | Expired case lock denies evidence download authorisation | Test 028 | PASS |
+| EVD-02 | Valid employee lock permits evidence download authorisation | Test 028 | PASS |
+| EVD-03 | Unlinked authenticated identity is denied | Test 028 | PASS |
+| EVD-04 | Authenticated evidence object retrieval is permitted | Storage SELECT RLS, Test 028 | PASS |
+| EVD-05 | Authenticated evidence metadata retrieval is permitted | Storage SELECT RLS, Test 028 | PASS |
+| EVD-06 | Storage listing operation does not expose evidence | Storage SELECT RLS, Test 028 | PASS |
+| EVD-07 | Storage deletion operation does not expose evidence through SELECT policy | Storage SELECT RLS, Test 028 | PASS |
+| EVD-08 | Temporary lock modification is rolled back | Transaction ROLLBACK | PASS |
+| EVD-09 | Hosted evidence download works after Migration 055 | Previously confirmed browser test | PASS |
+| EVD-10 | Comprehensive hosted adversarial security testing | Not executed | PENDING |
+| EVD-11 | Full regression coverage of evidence migrations 043–054 | Not completed | PENDING |
+
+### Evidence and limitations
+
+Test 028 passed locally on 22 October 2026, producing seven
+PASS notices and completing with ROLLBACK.
+
+The test uses existing synthetic employee, case, reservation and
+Storage object fixtures. It temporarily extends an expired case lock
+inside a transaction and restores the original state through rollback.
+
+Storage operation checks exercise the actual SELECT RLS policy under
+the authenticated PostgreSQL role, using independently evaluated
+storage.operation settings.
+
+The object.delete check verifies SELECT-policy visibility only.
+It does not attempt to delete an object or independently test
+DELETE privileges and policies.
+
+Migration 055 was previously applied to the hosted Supabase project,
+and evidence downloading was confirmed in the browser. This does not
+establish comprehensive hosted security or concurrency coverage.
+
+Other evidence-related migrations, including reservation creation,
+upload finalisation, recovery and audit behaviour, require separate
+regression coverage.
