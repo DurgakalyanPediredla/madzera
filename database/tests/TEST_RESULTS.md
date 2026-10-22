@@ -1277,3 +1277,61 @@ listing under selected authentication and lock conditions.
 It does not verify cross-employee or cross-organisation isolation,
 missing-attachment handling, concurrent recovery, actual upload
 resolution or hosted-environment behaviour.
+
+
+## Test 033 — Case Evidence Recovery Isolation Security
+
+**Date:** 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Regression:** `033_case_evidence_recovery_isolation.sql`
+
+**Result:** PASS — 10 checks, ROLLBACK, exit status 0.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Synthetic isolation fixtures and valid locks created | PASS |
+| Employee A recovered own reservation | PASS |
+| Employee A listed own reservation | PASS |
+| Employee B valid-lock positive control | PASS |
+| Cross-employee recovery denied despite valid lock | PASS |
+| Cross-employee reservation listing isolated | PASS |
+| Organisation B valid-lock positive control | PASS |
+| Cross-organisation recovery denied | PASS |
+| Cross-organisation reservation listing denied | PASS |
+| Organisation B listing excluded Organisation A reservation | PASS |
+
+### Post-test database integrity
+
+| Verification | Observed result |
+|---|---|
+| SQL exit status | 0 |
+| Transaction ended with ROLLBACK | Yes |
+| Remaining Test 033 reservations | 0 |
+| Remaining temporary Organisation B locks | 0 |
+| Original Organisation A lock restored | true |
+
+### Limitations
+
+The regression uses synthetic database reservations and
+transaction-scoped case locks under the authenticated
+PostgreSQL role.
+
+Same-organisation employee isolation is verified with a valid
+case lock, distinguishing reservation ownership enforcement
+from lock rejection.
+
+Cross-organisation requests are rejected at the case-access
+boundary. The test does not independently exercise the
+reservation-organisation predicate after passing that boundary.
+
+Concurrent requests, completed reservations without attachments,
+interrupted upload resolution, real Storage API behaviour and
+hosted deployment remain outside this test's coverage.
+
+**Conclusion:** All 10 local isolation assertions passed, and
+independent inspection confirmed that temporary fixtures were
+rolled back.

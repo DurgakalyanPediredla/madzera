@@ -479,7 +479,7 @@ full production security readiness.
 | EVR-10 | Expired lock denies recovery status | Test 032 | PASS |
 | EVR-11 | Expired lock denies reservation listing | Test 032 | PASS |
 | EVR-12 | Transaction rollback and fixture integrity | Independent inspection | PASS |
-| EVR-13 | Cross-employee and cross-organisation isolation | Not executed | PENDING |
+| EVR-13 | Cross-employee and cross-organisation isolation | Test 033 | PASS |
 | EVR-14 | Completed reservation without matching attachment | Not executed | PENDING |
 | EVR-15 | Concurrent recovery and upload-resolution workflows | Not executed | PENDING |
 
@@ -500,5 +500,52 @@ The test verifies read-only recovery reporting and access checks.
 It does not establish that an interrupted upload can be resumed,
 cancelled or otherwise resolved.
 
-Cross-employee isolation, cross-organisation isolation, concurrent
-requests and hosted-environment behaviour remain unverified.
+Cross-employee reservation isolation and cross-organisation case-access
+isolation were subsequently verified by Test 033. Concurrent requests,
+actual upload resolution and hosted-environment behaviour remain unverified.
+
+
+## 17. Case Evidence Recovery Isolation Security — 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migrations:** `051_get_case_evidence_upload_recovery_status.sql`,
+`052_list_employee_case_evidence_upload_reservations.sql`
+
+**Regression:** `033_case_evidence_recovery_isolation.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| EVI-01 | Synthetic isolation fixtures and valid locks created | Test 033 | PASS |
+| EVI-02 | Employee A recovers own reservation | Test 033 | PASS |
+| EVI-03 | Employee A lists own reservation | Test 033 | PASS |
+| EVI-04 | Employee B has valid lock and can recover own reservation | Test 033 | PASS |
+| EVI-05 | Employee B cannot recover Employee A reservation despite valid lock | Test 033 | PASS |
+| EVI-06 | Employee B listing excludes Employee A reservation | Test 033 | PASS |
+| EVI-07 | Organisation B employee has valid lock on own case | Test 033 | PASS |
+| EVI-08 | Organisation B cannot recover Organisation A case reservation | Test 033 | PASS |
+| EVI-09 | Organisation B cannot list Organisation A case reservations | Test 033 | PASS |
+| EVI-10 | Organisation B listing excludes Organisation A reservation | Test 033 | PASS |
+| EVI-11 | Transaction rollback and fixture integrity | Independent inspection | PASS |
+
+### Evidence and limitations
+
+Test 033 passed locally on 22 October 2026 with 10 PASS notices,
+ROLLBACK and exit status 0.
+
+The regression verifies same-organisation employee reservation
+isolation while the requesting employee holds a valid case lock.
+It also verifies cross-organisation case-access denial and
+reservation-listing isolation.
+
+Independent post-test inspection confirmed zero remaining
+Test 033 reservations, zero remaining temporary Organisation B
+locks and restoration of the original expired Organisation A lock.
+
+Cross-organisation recovery denial occurs at the case-access
+boundary. This test does not independently isolate the
+reservation-organisation predicate after passing that boundary.
+
+Concurrent access, missing-attachment handling, interrupted
+upload resolution, real Storage API behaviour and hosted
+deployment behaviour remain unverified.
