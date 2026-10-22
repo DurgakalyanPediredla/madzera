@@ -301,3 +301,53 @@ establish comprehensive hosted security or concurrency coverage.
 Other evidence-related migrations, including reservation creation,
 upload finalisation, recovery and audit behaviour, require separate
 regression coverage.
+
+## 13. Case Evidence Upload Preparation Security — 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Migrations:** `045_prepare_case_evidence_upload.sql`,
+`053_prevent_overlapping_evidence_reservations.sql`
+
+**Regression:** `029_case_evidence_upload_preparation.sql`
+
+| Test ID | Requirement | Verification | Status |
+|---|---|---|---|
+| EVU-01 | Expired case lock denies upload preparation | Test 029 | PASS |
+| EVU-02 | Invalid filenames are rejected | Test 029 | PASS |
+| EVU-03 | Unsupported file MIME type is rejected | Test 029 | PASS |
+| EVU-04 | Zero-byte file is rejected | Test 029 | PASS |
+| EVU-05 | File exceeding 10 MB is rejected | Test 029 | PASS |
+| EVU-06 | Valid employee lock permits reservation creation | Test 029 | PASS |
+| EVU-07 | Incorrect lock token denies upload preparation | Test 029 | PASS |
+| EVU-08 | Overlapping pending reservation is rejected | Test 029 | PASS |
+| EVU-09 | Expired pending reservation still requires recovery | Test 029 | PASS |
+| EVU-10 | Temporary database changes are rolled back | Transaction ROLLBACK and subsequent state inspection | PASS |
+| EVU-11 | Hosted upload-preparation security verification | Not executed | PENDING |
+| EVU-12 | Cross-organisation and concurrent reservation testing | Not executed | PENDING |
+| EVU-13 | Upload finalisation, Storage INSERT and recovery lifecycle regression | Not covered by Test 029 | PENDING |
+
+### Evidence and limitations
+
+Test 029 passed locally on 22 October 2026, producing nine
+PASS notices and completing with ROLLBACK.
+
+The regression exercises the upload-preparation RPC under the
+authenticated PostgreSQL role using an existing synthetic employee,
+case and expired-lock fixture.
+
+It validates file names, permitted MIME types, file-size limits,
+lock ownership and expiry, and prevention of overlapping pending
+reservations, including pending reservations past their expiry.
+
+The negative lock and reservation checks also verify the expected
+PostgreSQL error category and rejection message.
+
+The test temporarily extends the case lock and creates a reservation
+inside a transaction. A separate database inspection confirmed the
+original lock remained expired, its owner was unchanged, no pending
+reservations remained, and five completed reservations were preserved.
+
+This is local SQL regression evidence only. It does not verify actual
+Storage uploads, hosted deployment behaviour, cross-organisation
+isolation, simultaneous requests, finalisation or recovery workflows.

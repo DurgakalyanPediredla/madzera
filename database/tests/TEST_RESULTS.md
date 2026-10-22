@@ -1057,3 +1057,68 @@ migrations are still outstanding.
 **Conclusion:** All seven tested local evidence-download
 security conditions passed. This does not establish complete
 production security readiness.
+
+## Migrations 045 and 053 — Case Evidence Upload Preparation Security
+
+**Date:** 22 October 2026
+
+**Environment:** Local Supabase PostgreSQL
+
+**Regression:** `029_case_evidence_upload_preparation.sql`
+
+**Result:** PASS — nine security assertions.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Expired case lock rejects upload preparation | PASS |
+| Invalid filenames rejected | PASS |
+| Unsupported file MIME type rejected | PASS |
+| Zero-byte file rejected | PASS |
+| File exceeding 10 MB rejected | PASS |
+| Valid employee lock permits upload reservation | PASS |
+| Incorrect lock token rejected | PASS |
+| Overlapping pending reservation rejected | PASS |
+| Expired pending reservation remains blocked | PASS |
+
+The final regression execution produced nine PASS notices
+and completed with ROLLBACK.
+
+The test exercised the existing upload-preparation RPC under the
+authenticated PostgreSQL role. The lock and reservation rejection
+assertions checked both the expected PostgreSQL error category
+and the rejection message.
+
+### Post-test database integrity
+
+A separate read-only inspection after a successful regression
+execution confirmed:
+
+| Verification | Observed result |
+|---|---|
+| Original case lock remains expired | true |
+| Original lock owner unchanged | true |
+| Pending reservations for the test case | 0 |
+| Completed reservations for the test case | 5 |
+
+The regression temporarily extended the expired case lock,
+created a pending reservation and simulated an expired pending
+reservation. These changes were confined to the transaction
+and rolled back.
+
+### Limitations
+
+This was a local SQL regression test, not a hosted application
+or live Storage upload test.
+
+It does not independently establish cross-organisation isolation,
+concurrent reservation safety, Storage INSERT policy enforcement,
+upload finalisation, recovery workflow correctness or full
+production security readiness.
+
+These areas remain pending separate verification.
+
+**Conclusion:** All nine tested local upload-preparation
+security conditions passed, with no persistent fixture changes
+observed in the post-test integrity inspection.
