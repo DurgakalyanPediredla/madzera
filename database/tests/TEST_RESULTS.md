@@ -1392,3 +1392,81 @@ Concurrent requests and hosted deployment remain untested.
 **Conclusion:** The recovery-status function rejected a completed
 reservation without a matching attachment and returned the expected
 attachment ID once a matching record existed.
+
+## Test 035 — Case Evidence Download Path Security
+
+**Date:** 23 October 2026
+
+**Environment:** Local Supabase PostgreSQL (`supabase_db_madzera`)
+
+**Regression:** `035_case_evidence_download_path_security.sql`
+
+**Function:** `public.get_employee_case_evidence_download_path(uuid, uuid, uuid)`
+
+**Result:** PASS — 10 security assertions, ROLLBACK, exit status 0.
+
+### Verified results
+
+| Check | Result |
+|---|---|
+| Valid employee receives correct completed-evidence Storage path | PASS |
+| Incorrect lock token denied | PASS |
+| Unknown attachment denied | PASS |
+| Expired case lock denied | PASS |
+| Unlinked authenticated identity denied | PASS |
+| Different employee denied | PASS |
+| Cross-organisation request denied | PASS |
+| Attachment requested against wrong case denied | PASS |
+| Attachment with pending reservation denied | PASS |
+| Anonymous RPC execution denied | PASS |
+
+Fixture validation and creation of the synthetic pending-evidence
+record also completed successfully.
+
+### Post-test database integrity
+
+| Verification | Observed result |
+|---|---|
+| SQL exit status | 0 |
+| Transaction ended with ROLLBACK | Yes |
+| Original Organisation A case lock remains expired | Yes |
+| Temporary Organisation B case lock remains | No |
+| Remaining Test 035 synthetic attachments | 0 |
+| Remaining Test 035 synthetic reservations | 0 |
+
+### Execution history
+
+The first execution stopped when the expired-lock test fixture
+violated the existing `chk_case_locks_expiry` constraint.
+Post-test inspection confirmed the original lock state and
+zero synthetic attachments or reservations.
+
+The test fixture was corrected to set `locked_at` earlier than
+`expires_at`, while keeping both timestamps in the past.
+No database constraint, migration, RPC or locking function
+was changed.
+
+The subsequent execution passed all 10 security assertions,
+returned exit status 0 and completed with ROLLBACK.
+
+### Limitations
+
+This is a local database-RPC regression using simulated
+authenticated PostgreSQL roles and transaction-scoped fixtures.
+It does not execute actual Supabase Storage API downloads,
+deletions or hosted adversarial requests.
+
+The cross-organisation request is rejected at the case-access
+boundary; this does not independently isolate every downstream
+organisation predicate.
+
+The wrong-case test also fails at the case-access boundary,
+rather than testing attachment mismatch after obtaining a
+valid lock on a different case.
+
+Concurrent access, hosted deployment and comprehensive
+end-to-end evidence security remain unverified.
+
+**Conclusion:** The evidence download-path RPC passed all
+10 tested local authorisation and metadata scenarios, and
+independent post-test inspection confirmed rollback integrity.

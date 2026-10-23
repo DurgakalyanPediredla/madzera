@@ -276,6 +276,8 @@ tenant-isolation testing remain outstanding.
 | EVD-09 | Hosted evidence download works after Migration 055 | Previously confirmed browser test | PASS |
 | EVD-10 | Comprehensive hosted adversarial security testing | Not executed | PENDING |
 | EVD-11 | Full regression coverage of evidence migrations 043–054 | Not completed | PENDING |
+| EVD-12 | Evidence download-path RPC authorisation and metadata security | Test 035, 10 assertions | PASS |
+| EVD-13 | Test 035 transaction rollback and fixture integrity | Test 035 and independent post-test inspection | PASS |
 
 ### Evidence and limitations
 
