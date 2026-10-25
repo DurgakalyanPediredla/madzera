@@ -1470,3 +1470,92 @@ end-to-end evidence security remain unverified.
 **Conclusion:** The evidence download-path RPC passed all
 10 tested local authorisation and metadata scenarios, and
 independent post-test inspection confirmed rollback integrity.
+
+## Tests 036–038 — Customs Context and Team Permission Security — 25 October 2026
+
+**Environment:** Local Supabase PostgreSQL Docker container
+**Database:** postgres
+**Execution:** `psql -X -P pager=off -v ON_ERROR_STOP=1`
+**Date:** 25 October 2026
+
+### Test 036 — Customs context and operational references
+
+**File:** `036_customs_context_reference_security.sql`
+
+Observed PASS notices:
+- RLS enabled and direct application-role privileges denied.
+- Authenticated direct reads rejected.
+- Valid customs contexts.
+- Cross-organisation foreign keys.
+- Operation and reference-type constraints.
+- Duplicate-reference prevention.
+- Multiple references and independent cases.
+
+**Exit status:** 0.
+**Transaction:** BEGIN followed by ROLLBACK.
+
+### Test 037 — Context-first case creation
+
+**File:** `037_context_first_case_creation_security.sql`
+
+Observed PASS notices:
+- Employee and organisation fixtures available.
+- Anonymous execution denied.
+- Unlinked identity rejected.
+- Case, context, references and audit attribution.
+- Invalid reference and operation inputs rejected.
+- Twenty references accepted; twenty-one rejected.
+- Invalid issue categories rejected.
+- Reference-count and rejected-case integrity.
+- Cross-organisation customer and team rejected.
+- Cross-organisation requests left no cases.
+- Controlled reference-insertion failure captured.
+- Injected failure rolled back case, context, references and audit.
+- Rejected requests left no case records.
+
+The test created and removed a transaction-scoped failure-injection
+trigger and function to exercise atomicity.
+
+**Exit status:** 0.
+**Transaction:** BEGIN followed by ROLLBACK.
+
+### Test 038 — Team permission authorisation
+
+**File:** `038_team_permission_authorisation_security.sql`
+
+Observed PASS notices:
+- Migration 061 helper installed.
+- Function execution privileges.
+- Dynamic employee fixtures discovered.
+- Isolated test teams created.
+- Explicit grant and permission separation.
+- Cross-organisation team denied.
+- Invalid permission denied.
+- Colleague permission isolation.
+- Cross-tenant employee isolation.
+- Unlinked authenticated identity denied.
+- Granted employee access confirmed.
+- Exactly one employee deactivated and subsequently reactivated.
+- Inactive employee denied.
+- Exactly one permission grant revoked.
+- Revoked permission denied.
+
+**Exit status:** 0.
+**Transaction:** BEGIN followed by ROLLBACK.
+
+### Scope and limitations
+
+All results above are based on observed local PostgreSQL execution
+output with ON_ERROR_STOP enabled.
+
+The ROLLBACK statements establish transactional cleanup by design,
+but an independent post-test database-integrity inspection has not
+yet been recorded for these latest executions.
+
+Hosted Supabase deployment, browser/API workflows, concurrency,
+and complete application-level permission enforcement remain
+unverified by these three regressions.
+
+This record does not claim independent functional verification of
+administrator provisioning or the grant/revoke management RPCs
+introduced by migrations 059–060.

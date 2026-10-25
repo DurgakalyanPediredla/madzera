@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import {
   getCaseEvidence,
   downloadCaseEvidence,
+  listEmployeeCaseEvidenceUploadReservations,
   type CaseEvidenceAttachment,
 } from "@/lib/caseEvidence";
 import CaseActivityEditor from "./CaseActivityEditor";
@@ -182,6 +183,8 @@ export default function CaseWorkspace({
   const leavingRef = useRef(false);
   const router = useRouter();
   const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [checkingEvidenceBeforeLeave, setCheckingEvidenceBeforeLeave] =
+    useState(false);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -558,6 +561,46 @@ export default function CaseWorkspace({
     if (leavingRef.current || savingRef.current || activitySavingRef.current) return;
 
     leavingRef.current = true;
+    setCheckingEvidenceBeforeLeave(true);
+
+    if (session.status === "acquired") {
+      try {
+        const reservations =
+          await listEmployeeCaseEvidenceUploadReservations(
+            caseId,
+            session.token
+          );
+
+        const unresolved = reservations.filter(
+          (reservation) => reservation.reservation_status !== "completed"
+        );
+
+        if (unresolved.length > 0) {
+          const confirmed = window.confirm(
+            `${unresolved.length} evidence upload reservation(s) require review. ` +
+              "Leaving will release your case lock, but will not resolve or " +
+              "delete these reservations. Further evidence uploads may remain " +
+              "blocked until recovery is completed. Leave this case?"
+          );
+
+          if (!confirmed) {
+            leavingRef.current = false;
+            setCheckingEvidenceBeforeLeave(false);
+            return;
+          }
+        }
+      } catch {
+        setLeaveError(
+          "Unable to verify outstanding evidence uploads. " +
+            "Please retry before leaving this case."
+        );
+        leavingRef.current = false;
+        setCheckingEvidenceBeforeLeave(false);
+        return;
+      }
+    }
+
+    setCheckingEvidenceBeforeLeave(false);
     activitySessionRef.current = null;
     activityRequestRef.current += 1;
     auditRequestRef.current += 1;
@@ -965,7 +1008,7 @@ export default function CaseWorkspace({
         <button
           type="button"
           onClick={() => void handleBack()}
-          disabled={saving || activitySaving}
+          disabled={saving || activitySaving || checkingEvidenceBeforeLeave}
           className="text-sm text-[#51483F] hover:underline disabled:opacity-50"
         >
           ← Back to cases

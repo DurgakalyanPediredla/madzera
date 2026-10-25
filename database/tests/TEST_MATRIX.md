@@ -594,3 +594,49 @@ The corrected execution passed without changing database privileges.
 The test does not establish actual Storage object existence,
 successful upload recovery or resolution, concurrent-request
 safety or hosted-environment behaviour.
+
+## 19. Customs Context, Case Creation and Team Permission Security — 25 October 2026
+
+**Environment:** Local Supabase PostgreSQL (Docker)
+**Execution date:** 25 October 2026
+**Associated migrations:** 056, 057 and 061, with permission foundations introduced by 058–060.
+
+| Test | Security requirement | Observed result |
+|---|---|---|
+| 036 | RLS and direct application-role privilege restrictions | PASS |
+| 036 | Authenticated direct reads denied | PASS |
+| 036 | Valid customs context and reference integrity | PASS |
+| 036 | Cross-organisation foreign-key restrictions | PASS |
+| 036 | Operation and reference-type constraints | PASS |
+| 036 | Duplicate-reference prevention | PASS |
+| 036 | Multiple references and independent cases | PASS |
+| 037 | Anonymous and unlinked-identity case creation denied | PASS |
+| 037 | Case, context, references and audit attribution | PASS |
+| 037 | Invalid input and reference-count boundaries | PASS |
+| 037 | Cross-organisation customers and teams rejected | PASS |
+| 037 | Rejected requests leave no cases | PASS |
+| 037 | Injected reference failure rolls back all associated records | PASS |
+| 038 | Authorisation helper and function privileges | PASS |
+| 038 | Explicit grant and permission-type separation | PASS |
+| 038 | Cross-organisation team and employee isolation | PASS |
+| 038 | Colleague and unlinked-identity isolation | PASS |
+| 038 | Inactive employees denied | PASS |
+| 038 | Revoked permissions denied | PASS |
+
+### Evidence and limitations
+
+All three regression scripts completed with PostgreSQL exit status 0,
+displayed the expected PASS notices and ended with ROLLBACK.
+
+The tests exercise local PostgreSQL transactions and simulated
+application-role identities. They do not establish hosted deployment
+security, real browser/API integration, concurrent access safety or
+complete enforcement of team permissions by every application workflow.
+
+Migrations 056–061 were found as local SQL files. Selected installed
+database tables and functions were independently confirmed present;
+the migration-history table queried was not available. Object presence
+does not independently establish full migration reproducibility.
+
+Tests 036–038 do not constitute independent end-to-end verification
+of permission-grant and revocation management workflows.
