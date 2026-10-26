@@ -1559,3 +1559,241 @@ unverified by these three regressions.
 This record does not claim independent functional verification of
 administrator provisioning or the grant/revoke management RPCs
 introduced by migrations 059–060.
+
+## Migrations 058–063 — Organisation Administration and Mandatory Team Submission
+
+**Verification date:** 26 October 2026
+
+**Environment:** Local Supabase PostgreSQL, Docker
+
+**Database:** postgres
+
+**Container:** supabase_db_madzera
+
+**Source commit:** f87f70ad2d3c53081585136bfe079f2ddc0d4f25
+
+**GitHub status:** Commit pushed to origin/main
+
+**Hosted Migration 063 deployment:** Not performed
+
+### 1. Implementation scope
+
+The reviewed migrations establish the following components:
+
+| Migration | Implementation |
+|---|---|
+| 058 | Organisation administrators, team permission grants, permission audit events and relational constraints |
+| 059 | Controlled team-permission grant and revocation functions |
+| 060 | Privileged initial organisation-administrator provisioning |
+| 061 | Explicit team-permission authorisation helper |
+| 062 | Controlled organisation-team provisioning and audit events |
+| 063 | Mandatory destination-team and submit-permission enforcement during case creation |
+
+The permissions submit, work and manage are represented as
+independent permission types.
+
+Implementation of these permission types does not by itself
+establish enforcement throughout every downstream workflow.
+
+### 2. Regression test execution
+
+The following local regression results were recorded during
+development and reviewed in the current verification sequence.
+
+| Test | Description | Recorded outcome |
+|---|---|---|
+| 038 | Team permission authorisation and isolation | PASS |
+| 039 | Secure organisation-team provisioning, administrator isolation and audit rollback | PASS |
+| 040 | Mandatory destination-team submission security | PASS — 11 checks |
+| 041 | Administrator-to-case-submission integration | PASS — 7 checks |
+
+The tests were executed against local PostgreSQL using
+transaction-scoped synthetic fixtures and ROLLBACK.
+
+These are database-level regression results, not browser-level
+or hosted Supabase API penetration tests.
+
+### 3. Test 040 — Mandatory submission authorisation
+
+**File:** database/tests/040_mandatory_destination_team_submission_security.sql
+
+**SHA-256:**
+d1e4710e6925cde6d25b08f0b69c60aeb71c6201e121f13b7cf8d4fb2e755540
+
+The reviewed test source covers:
+
+- Missing destination-team rejection.
+- Cross-organisation destination-team rejection.
+- Rejection without an explicit submit permission.
+- Separation of submit from work and manage.
+- Successful authorised case creation.
+- Organisation, team and employee attribution.
+- Colleague permission isolation.
+- Effective revocation of submit permission.
+- Absence of corresponding persisted case and audit records
+  for rejected submissions.
+
+**Recorded execution:** PASS — 11 checks.
+
+**Important distinction:** This test uses privileged setup
+to manipulate transaction-scoped permission grants. It does
+not independently exercise the administrator management RPCs.
+
+### 4. Test 041 — Administrator-to-submission integration
+
+**File:** database/tests/041_end_to_end_team_submission_integration.sql
+
+**SHA-256:**
+a3dd972609b68893b1440989b74eab8f1079a42c901bc5924234131e37807a0b
+
+The reviewed test source covers:
+
+- Initial administrator provisioning.
+- Administrator-created organisation team.
+- Administrator-issued submit permission.
+- Successful case submission by an authorised employee.
+- Case and audit attribution.
+- Rejection of an unauthorised colleague.
+
+**Recorded execution:** PASS — 7 checks.
+
+This is an end-to-end database workflow test, not an
+end-to-end browser or hosted API test.
+
+### 5. Installed database security inspection
+
+The following inspections were performed against the
+installed local PostgreSQL database.
+
+**Step 2477 — Employee identity resolution**
+
+The current_employee_id and current_user_organisation_id
+helpers require an authenticated identity linked to an
+active employee record.
+
+**Step 2478 — Relational integrity and RLS**
+
+The installed permission tables were inspected for
+organisation-scoped foreign keys, permission constraints,
+uniqueness restrictions and enabled RLS.
+
+**Step 2479 — Direct table privileges**
+
+Anonymous and authenticated roles lacked direct SELECT,
+INSERT, UPDATE and DELETE privileges on the four inspected
+permission-management and administration audit tables.
+
+The service_role retained privileged direct access to
+three inspected tables, but lacked the inspected privileges
+on organisation_admin_audit_events.
+
+No RLS policies were installed on those four tables.
+Their RLS configuration did not use FORCE ROW LEVEL SECURITY.
+
+**Step 2480 — Function execution privileges**
+
+Anonymous callers lacked EXECUTE permission on the
+inspected management and authorisation functions.
+
+Authenticated callers could execute the public
+management functions, subject to their internal
+administrator and employee validation.
+
+The initial administrator-provisioning function was
+not executable by application roles.
+
+**Step 2481 — Installed case-creation implementation**
+
+The installed private case-creation function was inspected.
+
+The implementation requires a destination team belonging
+to the caller's organisation and an explicit submit grant.
+
+It independently validates authorisation at the database
+boundary rather than trusting frontend team filtering.
+
+The function uses SECURITY DEFINER, postgres ownership
+and an empty search_path.
+
+### 6. Frontend integration review
+
+The CreateCaseForm.tsx source was reviewed.
+
+The form retrieves organisation teams, evaluates submit
+permission, filters available destinations and requires
+a destination-team selection.
+
+It invokes create_employee_case_v2.
+
+Database authorisation remains authoritative even if
+frontend validation is bypassed.
+
+This review does not constitute a complete browser
+regression or prove protection against simultaneous
+duplicate submissions.
+
+### 7. Auditability and integrity
+
+The implementation records permission-management and
+team-provisioning actions in dedicated audit tables.
+
+Successful case creation records a case_created event
+with employee and destination-team attribution.
+
+The case and associated creation event are inserted
+within the same database transaction.
+
+Direct application-role access to the inspected
+administration and permission audit tables is restricted.
+
+These observations do not prove audit-log immutability
+against database owners or other privileged operators.
+
+### 8. Release and repository evidence
+
+Migration 063 was installed in the local database.
+
+The recorded local regression suite passed its selected
+post-installation tests.
+
+A pre-migration local database backup was created and
+its archive structure inspected. A full restore test
+has not been performed.
+
+Commit f87f70a was pushed to GitHub main.
+
+GitHub publication does not imply deployment to hosted
+Supabase.
+
+Migration 063 has not been deployed to the hosted
+Supabase database in this verification sequence.
+
+### 9. Outstanding verification
+
+- Hosted migration deployment and post-deployment inspection.
+- Real authenticated API tests for the latest permission model.
+- Browser-level administrator and case-submission workflows.
+- Complete enforcement of work and manage permissions.
+- Cross-team access and revocation behaviour for existing cases.
+- Concurrency, duplicate submission and idempotency.
+- Comprehensive downstream evidence and audit authorisation.
+- Independent post-test fixture-integrity checks where absent.
+- Independent security assessment.
+- Production deployment approval.
+
+### 10. Verification conclusion
+
+Migrations 058–063 establish an organisation-scoped
+permission foundation and database-enforced mandatory
+destination-team submission.
+
+The reviewed implementation and recorded local regression
+results support the specific controls described above.
+
+The evidence does not establish complete production
+security, certification against PAS 41201, or hosted
+deployment of Migration 063.
+
+Earlier test results remain historical evidence and
+must not be interpreted as current database privileges
+where later migrations changed those privileges.

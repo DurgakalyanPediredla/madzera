@@ -640,3 +640,87 @@ does not independently establish full migration reproducibility.
 
 Tests 036–038 do not constitute independent end-to-end verification
 of permission-grant and revocation management workflows.
+
+## 20. Organisation Administration and Mandatory Team Submission — 26 October 2026
+
+**Environment:** Local Supabase PostgreSQL (Docker)
+**Database:** postgres
+**Migrations:** 058–063
+**Regression tests:** 038–041
+**Source commit:** f87f70a
+**Hosted deployment:** Not performed for Migration 063
+
+### Security requirements and verification
+
+| ID | Security requirement | Evidence | Status |
+|---|---|---|---|
+| TEAM-01 | Organisation administrators are scoped to their organisation | Migration 058; installed composite foreign keys | VERIFIED — schema |
+| TEAM-02 | Permission grants are restricted to valid organisation/team/user relationships | Migration 058; installed constraints | VERIFIED — schema |
+| TEAM-03 | Submit, work and manage are independent permission types | Migration 061; Test 038 | PASS — local |
+| TEAM-04 | Permission checks reject unlinked identities | Test 038 | PASS — local |
+| TEAM-05 | Permission checks reject inactive employees | Test 038 | PASS — local |
+| TEAM-06 | Permission checks reject cross-organisation teams | Test 038 | PASS — local |
+| TEAM-07 | Permission revocation removes effective authorisation | Test 038 | PASS — local |
+| TEAM-08 | Ordinary application roles cannot directly access permission-management tables | Installed privilege inspection, Step 2479 | VERIFIED — privileges |
+| TEAM-09 | Administrator provisioning is unavailable to application roles | Installed function and schema privilege inspection, Step 2480 | VERIFIED — privileges |
+| TEAM-10 | Team-management RPCs validate administrator identity | Migration 059/062 function inspection; Test 039 | PASS — local |
+| TEAM-11 | Administrator and team-management actions create audit records | Migration 059/060/062; Test 039/041 | PASS — local |
+| TEAM-12 | Case creation requires a destination team | Migration 063; Test 040 | PASS — local |
+| TEAM-13 | Cross-organisation destination teams are rejected | Migration 063; Test 040 | PASS — local |
+| TEAM-14 | Case submission requires explicit submit permission | Migration 063; Tests 040–041 | PASS — local |
+| TEAM-15 | Work/manage permission alone does not authorise submission | Test 040 | PASS — local |
+| TEAM-16 | Colleague permissions are not implicitly inherited | Tests 040–041 | PASS — local |
+| TEAM-17 | Revoked submit permission prevents subsequent submission | Test 040 | PASS — local |
+| TEAM-18 | Rejected submissions leave no corresponding case or creation audit event | Test 040 | PASS — local |
+| TEAM-19 | Successful submission records organisation, destination team and employee attribution | Tests 040–041 | PASS — local |
+| TEAM-20 | Administrator provisioning, team creation, grant and case submission operate together | Test 041 | PASS — local |
+| TEAM-21 | Frontend filters destination teams using submit permission | CreateCaseForm.tsx source inspection | VERIFIED — source |
+| TEAM-22 | Database rechecks submit permission independently of frontend | Installed function inspection, Step 2481 | VERIFIED — implementation |
+| TEAM-23 | Existing exclusive case locking and Save behaviour remain unchanged | No intentional locking changes in this feature | NOT REGRESSION-VERIFIED |
+| TEAM-24 | Work permission enforced across case opening and subsequent operations | Not comprehensively verified | PENDING |
+| TEAM-25 | Manage permission enforced across relevant management operations | Not comprehensively verified | PENDING |
+| TEAM-26 | Hosted Migration 063 and authenticated API security | Not deployed or tested | PENDING |
+| TEAM-27 | Browser-level submission and adversarial UI testing | Not completed | PENDING |
+| TEAM-28 | Concurrent submissions, duplicate requests and idempotency | Not comprehensively tested | PENDING |
+| TEAM-29 | Independent production security assessment | Not performed | PENDING |
+
+### Regression execution summary
+
+| Test | Scope | Recorded local result |
+|---|---|---|
+| 038 | Team permission helper, isolation and revocation | PASS |
+| 039 | Secure organisation-team provisioning, administrator isolation and audit rollback | PASS |
+| 040 | Mandatory destination-team submission security | PASS — 11 checks |
+| 041 | Administrator-to-submission integration | PASS — 7 checks |
+
+The recorded executions used local PostgreSQL and rollback-only
+test transactions. The test source for Tests 040–041 was separately
+reviewed and SHA-256 fingerprinted.
+
+### Installed security-boundary inspections
+
+- Step 2477: Active-employee identity helper definitions.
+- Step 2478: Permission-table constraints and RLS configuration.
+- Step 2479: Table privileges, owners and RLS policies.
+- Step 2480: Privileged function EXECUTE and private-schema USAGE.
+- Step 2481: Installed case-creation implementation.
+- Step 2482: Test 040/041 source and checksums.
+- Steps 2483–2485: Documentation evidence inventory and baseline.
+
+### Evidence classification and limitations
+
+PASS means the stated local test scenario was reported successful.
+VERIFIED — schema/privileges/implementation/source means the
+relevant installed database object or source was inspected;
+it does not independently establish successful runtime behaviour.
+
+Permission and administrator audit records are protected from
+ordinary application-role direct access. They have not been
+demonstrated immutable against privileged database operators.
+
+This feature does not establish complete enforcement of work
+and manage permissions, production readiness, PAS 41201
+certification, or hosted deployment of Migration 063.
+
+Earlier sections describe historical database states and must
+be interpreted in light of subsequent migrations and dated updates.
