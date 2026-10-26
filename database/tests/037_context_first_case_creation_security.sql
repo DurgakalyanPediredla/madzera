@@ -15,6 +15,7 @@ DECLARE
     v_org uuid;
     v_other_org uuid;
     v_other_customer uuid;
+    v_team_id uuid;
 BEGIN
     SELECT u.id, u.auth_user_id, u.organisation_id
     INTO v_employee, v_auth_user, v_org
@@ -35,6 +36,25 @@ BEGIN
     IF v_other_org IS NULL THEN
         RAISE EXCEPTION 'FAIL: Second organisation fixture missing';
     END IF;
+
+    -- Migration 063: explicitly authorise this employee to submit cases.
+    INSERT INTO public.teams (organisation_id, name)
+    VALUES (v_org, 'MADZERA TEST 037 SUBMISSION TEAM')
+    RETURNING id INTO v_team_id;
+
+    INSERT INTO public.team_permission_grants (
+        organisation_id,
+        team_id,
+        user_id,
+        permission_type
+    )
+    VALUES (v_org, v_team_id, v_employee, 'submit');
+
+    PERFORM set_config(
+        'madzera.test037.team',
+        v_team_id::text,
+        true
+    );
 
     PERFORM set_config('madzera.test037.employee', v_employee::text, true);
     PERFORM set_config('madzera.test037.auth_user', v_auth_user::text, true);
@@ -129,7 +149,7 @@ SELECT set_config(
         'Transactional creation verification',
         'high',
         NULL,
-        NULL,
+        current_setting('madzera.test037.team')::uuid,
         'internal_case',
         'import_declaration',
         'missing_documents',
@@ -228,7 +248,7 @@ BEGIN
         BEGIN
             PERFORM public.create_employee_case_v3(
                 'TEST 037 INVALID REFERENCE',
-                NULL, 'medium', NULL, NULL, 'internal_case',
+                NULL, 'medium', NULL, current_setting('madzera.test037.team')::uuid, 'internal_case',
                 'general_internal', 'general_query', v_test
             );
         EXCEPTION WHEN OTHERS THEN
@@ -247,7 +267,7 @@ BEGIN
     BEGIN
         PERFORM public.create_employee_case_v3(
             'TEST 037 INVALID OPERATION',
-            NULL, 'medium', NULL, NULL, 'internal_case',
+            NULL, 'medium', NULL, current_setting('madzera.test037.team')::uuid, 'internal_case',
             'invalid_operation', 'general_query', '[]'::jsonb
         );
     EXCEPTION WHEN OTHERS THEN
@@ -286,7 +306,7 @@ BEGIN
 
     v_case := public.create_employee_case_v3(
         'TEST 037 TWENTY REFERENCES',
-        NULL, 'medium', NULL, NULL, 'internal_case',
+        NULL, 'medium', NULL, current_setting('madzera.test037.team')::uuid, 'internal_case',
         'general_internal', 'general_query', v_references
     );
 
@@ -312,7 +332,7 @@ BEGIN
     BEGIN
         PERFORM public.create_employee_case_v3(
             'TEST 037 TWENTY ONE REFERENCES',
-            NULL, 'medium', NULL, NULL, 'internal_case',
+            NULL, 'medium', NULL, current_setting('madzera.test037.team')::uuid, 'internal_case',
             'general_internal', 'general_query', v_references
         );
     EXCEPTION WHEN OTHERS THEN
@@ -338,7 +358,7 @@ BEGIN
         BEGIN
             PERFORM public.create_employee_case_v3(
                 'TEST 037 INVALID CATEGORY',
-                NULL, 'medium', NULL, NULL, 'internal_case',
+                NULL, 'medium', NULL, current_setting('madzera.test037.team')::uuid, 'internal_case',
                 'general_internal', v_category, '[]'::jsonb
             );
         EXCEPTION WHEN OTHERS THEN
@@ -436,7 +456,7 @@ BEGIN
         PERFORM public.create_employee_case_v3(
             'TEST 037 CROSS TENANT CUSTOMER',
             NULL, 'medium',
-            v_other_customer, NULL, 'customer_query',
+            v_other_customer, current_setting('madzera.test037.team')::uuid, 'customer_query',
             'import_declaration', 'general_query', '[]'::jsonb
         );
     EXCEPTION WHEN OTHERS THEN
@@ -527,7 +547,7 @@ BEGIN
         PERFORM public.create_employee_case_v3(
             'TEST 037 ATOMICITY FAILURE',
             'Test-only forced failure after case creation',
-            'medium', NULL, NULL, 'internal_case',
+            'medium', NULL, current_setting('madzera.test037.team')::uuid, 'internal_case',
             'general_internal', 'general_query',
             '[{"reference_type":"job_reference","reference_value":"TEST037-ATOMIC"}]'::jsonb
         );

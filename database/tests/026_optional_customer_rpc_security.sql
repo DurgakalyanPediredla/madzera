@@ -133,6 +133,46 @@ $test$;
 RESET ROLE;
 
 -- The original RPC must remain operational for linked employees.
+-- Migration 063 fixture: authorise the linked employee for one destination team.
+DO $test$
+DECLARE
+    v_auth_user_id uuid :=
+        current_setting('madzera.test.auth_user_id')::uuid;
+    v_user_id uuid;
+    v_org_id uuid;
+    v_team_id uuid;
+BEGIN
+    SELECT u.id, u.organisation_id
+    INTO STRICT v_user_id, v_org_id
+    FROM public.users u
+    WHERE u.auth_user_id = v_auth_user_id
+      AND u.is_active = true;
+
+    INSERT INTO public.teams (organisation_id, name)
+    VALUES (v_org_id, 'MADZERA TEST 026 SUBMISSION TEAM')
+    RETURNING id INTO v_team_id;
+
+    INSERT INTO public.team_permission_grants (
+        organisation_id,
+        team_id,
+        user_id,
+        permission_type
+    )
+    VALUES (
+        v_org_id,
+        v_team_id,
+        v_user_id,
+        'submit'
+    );
+
+    PERFORM set_config(
+        'madzera.test026.team_id',
+        v_team_id::text,
+        true
+    );
+END;
+$test$;
+
 SELECT set_config(
     'request.jwt.claim.sub',
     current_setting('madzera.test.auth_user_id'),
@@ -147,7 +187,9 @@ CREATE TEMP TABLE madzera_test_026_case_id (
 
 INSERT INTO madzera_test_026_case_id (case_id)
 SELECT public.create_employee_case(
-    p_title => 'TEST 026 legacy compatibility'
+    p_title => 'TEST 026 legacy compatibility',
+    p_assigned_team_id =>
+        current_setting('madzera.test026.team_id')::uuid
 );
 
 RESET ROLE;

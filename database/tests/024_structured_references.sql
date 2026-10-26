@@ -182,6 +182,37 @@ END;
 $test$;
 
 -- Verify authenticated employee creation still uses the trigger.
+-- Migration 063 regression fixture: provide an explicitly authorised team.
+DO $test$
+DECLARE
+    v_auth_user_id uuid := 'dc36ef25-8ff9-4845-857c-2a191ecc2b4a';
+    v_user_id uuid;
+    v_org_id uuid;
+    v_team_id uuid;
+BEGIN
+    SELECT u.id, u.organisation_id
+    INTO STRICT v_user_id, v_org_id
+    FROM public.users u
+    WHERE u.auth_user_id = v_auth_user_id
+      AND u.is_active = true;
+
+    INSERT INTO public.teams (organisation_id, name)
+    VALUES (v_org_id, 'MADZERA TEST 024 SUBMISSION TEAM')
+    RETURNING id INTO v_team_id;
+
+    INSERT INTO public.team_permission_grants (
+        organisation_id, team_id, user_id, permission_type
+    )
+    VALUES (v_org_id, v_team_id, v_user_id, 'submit');
+
+    PERFORM set_config(
+        'madzera.test024.team_id',
+        v_team_id::text,
+        true
+    );
+END;
+$test$;
+
 SELECT set_config(
     'request.jwt.claim.sub',
     'dc36ef25-8ff9-4845-857c-2a191ecc2b4a',
@@ -195,7 +226,9 @@ DECLARE
     v_case_id uuid;
 BEGIN
     v_case_id := public.create_employee_case(
-        'MADZERA TEST 024 AUTHENTICATED CASE'
+        p_title => 'MADZERA TEST 024 AUTHENTICATED CASE',
+        p_assigned_team_id =>
+            current_setting('madzera.test024.team_id')::uuid
     );
 
     IF v_case_id IS NULL THEN

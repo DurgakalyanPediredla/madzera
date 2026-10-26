@@ -50,13 +50,55 @@ export default function CreateCaseForm({
       if (!active) return;
 
       if (customerResult.error || teamResult.error) {
+        setCustomers([]);
+        setTeams([]);
         setError("Unable to load customers or teams.");
-      } else {
-        setCustomers(customerResult.data ?? []);
-        setTeams(teamResult.data ?? []);
+        setLoadingOptions(false);
+        return;
       }
 
-      setLoadingOptions(false);
+      const availableTeams = teamResult.data ?? [];
+
+      try {
+        const permissionResults = await Promise.all(
+          availableTeams.map((team) =>
+            supabase.rpc("has_team_permission", {
+              p_team_id: team.id,
+              p_permission_type: "submit",
+            })
+          )
+        );
+
+        if (!active) return;
+
+        if (
+          permissionResults.some(
+            (result) => result.error || result.data !== true
+              && result.data !== false
+          )
+        ) {
+          setCustomers([]);
+          setTeams([]);
+          setError("Unable to verify team submission permissions.");
+          setLoadingOptions(false);
+          return;
+        }
+
+        const authorisedTeams = availableTeams.filter(
+          (_, index) => permissionResults[index].data === true
+        );
+
+        setCustomers(customerResult.data ?? []);
+        setTeams(authorisedTeams);
+        setLoadingOptions(false);
+      } catch {
+        if (!active) return;
+
+        setCustomers([]);
+        setTeams([]);
+        setError("Unable to verify team submission permissions.");
+        setLoadingOptions(false);
+      }
     }
 
     void loadOptions();
@@ -85,6 +127,13 @@ export default function CreateCaseForm({
 
     if (!teamId) {
       setError("Select the team responsible for this case.");
+      return;
+    }
+
+    if (!teams.some((team) => team.id === teamId)) {
+      setError(
+        "You do not have permission to submit cases to the selected team."
+      );
       return;
     }
 
@@ -346,6 +395,13 @@ export default function CreateCaseForm({
               </option>
             ))}
           </select>
+            {!loadingOptions && !error && teams.length === 0 && (
+              <p role="status" className="mt-2 text-sm text-amber-800">
+                No teams are currently available for case submission.
+                Contact your organisation administrator to request
+                submission permission for an appropriate team.
+              </p>
+            )}
         </div>
       </div>
 

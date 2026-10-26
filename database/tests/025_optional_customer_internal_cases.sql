@@ -65,6 +65,29 @@ BEGIN
     )
     RETURNING id INTO v_other_team_id;
 
+    -- Migration 063 regression fixture:
+    -- Grant submission permission only to the primary organisation's team.
+    INSERT INTO public.team_permission_grants (
+        organisation_id,
+        team_id,
+        user_id,
+        permission_type
+    )
+    SELECT
+        v_organisation_id,
+        v_team_id,
+        u.id,
+        'submit'
+    FROM public.users u
+    WHERE u.auth_user_id = v_auth_user_id
+      AND u.organisation_id = v_organisation_id
+      AND u.is_active = true;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION
+            'FAIL: Test 025 submission permission fixture missing';
+    END IF;
+
     PERFORM set_config(
         'request.jwt.claim.sub',
         v_auth_user_id::text,

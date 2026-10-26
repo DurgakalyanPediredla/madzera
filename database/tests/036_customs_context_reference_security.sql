@@ -58,6 +58,8 @@ DECLARE
     v_other_org uuid;
     v_case_one uuid;
     v_case_two uuid;
+    v_user_id uuid;
+    v_team_id uuid;
 BEGIN
     SELECT u.auth_user_id, u.organisation_id
       INTO v_employee, v_org
@@ -79,6 +81,32 @@ BEGIN
         RAISE EXCEPTION 'Missing second organisation fixture';
     END IF;
 
+    -- Migration 063: authorise this employee for a destination team.
+    SELECT u.id
+    INTO STRICT v_user_id
+    FROM public.users u
+    WHERE u.auth_user_id = v_employee
+      AND u.organisation_id = v_org
+      AND u.is_active = true;
+
+    INSERT INTO public.teams (organisation_id, name)
+    VALUES (v_org, 'MADZERA TEST 036 SUBMISSION TEAM')
+    RETURNING id INTO v_team_id;
+
+    INSERT INTO public.team_permission_grants (
+        organisation_id,
+        team_id,
+        user_id,
+        permission_type
+    )
+    VALUES (v_org, v_team_id, v_user_id, 'submit');
+
+    PERFORM set_config(
+        'madzera.test036.team',
+        v_team_id::text,
+        true
+    );
+
     PERFORM set_config('request.jwt.claim.sub', v_employee::text, true);
     PERFORM set_config('madzera.test036.org', v_org::text, true);
     PERFORM set_config('madzera.test036.other_org', v_other_org::text, true);
@@ -91,7 +119,9 @@ SELECT set_config(
     'madzera.test036.case_one',
     public.create_employee_case_v2(
         'TEST 036 CUSTOMS CASE ONE',
-        NULL, 'medium', NULL, NULL, 'internal_case'
+        NULL, 'medium', NULL,
+        current_setting('madzera.test036.team')::uuid,
+        'internal_case'
     )::text,
     true
 );
@@ -100,7 +130,9 @@ SELECT set_config(
     'madzera.test036.case_two',
     public.create_employee_case_v2(
         'TEST 036 CUSTOMS CASE TWO',
-        NULL, 'medium', NULL, NULL, 'internal_case'
+        NULL, 'medium', NULL,
+        current_setting('madzera.test036.team')::uuid,
+        'internal_case'
     )::text,
     true
 );
