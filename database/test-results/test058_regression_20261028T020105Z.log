@@ -1,0 +1,100 @@
+BEGIN
+CREATE FUNCTION
+REVOKE
+GRANT
+COMMENT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+=== TEST044: SELECT AUTHENTICATED EMPLOYEE FIXTURES ===
+CREATE TABLE
+GRANT
+INSERT 0 1
+DO
+=== TEST044: CREATE ISOLATED TEAMS ===
+UPDATE 1
+UPDATE 1
+UPDATE 1
+=== TEST044: CREATE ISOLATED CASES ===
+UPDATE 1
+UPDATE 1
+UPDATE 1
+=== TEST044: ESTABLISH MEMBERSHIP AND GRANTS ===
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+=== TEST044: VERIFY FIXTURE INTEGRITY ===
+DO
+=== TEST058: CREATE SYNTHETIC ACTIVE LOCKS ===
+CREATE TABLE
+INSERT 0 1
+DO
+=== TEST058: AUTHORISED WORKER VISIBILITY ===
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+=== TEST058: SUBMIT AND MANAGE CANNOT VIEW LOCKS ===
+              set_config              
+--------------------------------------
+ dc36ef25-8ff9-4845-857c-2a191ecc2b4a
+(1 row)
+
+SET
+DO
+RESET
+=== TEST058: EXPLICIT SECOND-TEAM WORK GRANT ===
+INSERT 0 1
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+=== TEST058: REVOKE SECOND-TEAM WORK GRANT ===
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+=== TEST058: ACTIVE-LOCK SECURITY TEST COMPLETE ===
+ROLLBACK
+
+NOTICE:  PASS: Multi-organisation authenticated identities selected
+NOTICE:  PASS: Isolated teams, cases, memberships and grants established
+NOTICE:  PASS: Three synthetic active locks created
+NOTICE:  PASS: Worker sees authorised active lock only
+NOTICE:  PASS: Submit/manage permissions do not expose locks
+NOTICE:  PASS: Explicit work grants permit multi-team lock visibility
+NOTICE:  PASS: Revocation immediately removes second-team visibility

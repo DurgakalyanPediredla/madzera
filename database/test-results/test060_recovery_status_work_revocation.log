@@ -1,0 +1,89 @@
+=== TEST060: OUTER TRANSACTION BEGIN ===
+BEGIN
+CREATE FUNCTION
+REVOKE
+GRANT
+COMMENT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+=== TEST044: SELECT AUTHENTICATED EMPLOYEE FIXTURES ===
+CREATE TABLE
+GRANT
+INSERT 0 1
+NOTICE:  PASS: Multi-organisation authenticated identities selected
+DO
+=== TEST044: CREATE ISOLATED TEAMS ===
+UPDATE 1
+UPDATE 1
+UPDATE 1
+=== TEST044: CREATE ISOLATED CASES ===
+UPDATE 1
+UPDATE 1
+UPDATE 1
+=== TEST044: ESTABLISH MEMBERSHIP AND GRANTS ===
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+=== TEST044: VERIFY FIXTURE INTEGRITY ===
+NOTICE:  PASS: Isolated teams, cases, memberships and grants established
+DO
+=== TEST060: CREATE VALID LOCK AND OWNED RESERVATION ===
+CREATE TABLE
+GRANT
+NOTICE:  PASS: Valid exclusive lock, reservation and integrity baseline created
+DO
+=== TEST060: AUTHORISED RECOVERY STATUS ===
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+NOTICE:  PASS: Work-authorised employee retrieves pending recovery status
+DO
+RESET
+=== TEST060: REVOKE WORK WITHOUT RELEASING LOCK ===
+NOTICE:  PASS: Work revoked while original exclusive lock remains valid
+DO
+=== TEST060: DENY RECOVERY STATUS AFTER REVOCATION ===
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+NOTICE:  PASS: Revoked employee recovery status denied despite valid lock
+DO
+RESET
+=== TEST060: VERIFY DENIAL PRESERVED STATE ===
+DO
+=== TEST060: COMPLETE ===
+=== TEST060: OUTER TRANSACTION ROLLBACK ===
+NOTICE:  PASS: Recovery denial preserved exclusive lock exactly
+NOTICE:  PASS: Recovery denial preserved reservation exactly
+NOTICE:  PASS: Recovery denial created no attachment or audit event
+NOTICE:  PASS: TEST060 behavioural assertions completed
+ROLLBACK
+=== TEST060: ROLLBACK COMPLETED ===

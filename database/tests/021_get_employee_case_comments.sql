@@ -8,6 +8,81 @@ SELECT set_config(
     true
 );
 
+-- LEGACY TEAM WORK FIXTURE
+-- Compatibility fixture for historical cases without an assigned team.
+-- All changes, including the audited case assignment, are rolled back.
+
+CREATE TEMP TABLE legacy_team_work_fixture (
+    team_id uuid NOT NULL
+) ON COMMIT DROP;
+
+WITH created AS (
+    INSERT INTO public.teams (
+        organisation_id,
+        name
+    )
+    VALUES (
+        '0a316877-23d4-4dc3-b0ed-350208d68fb3',
+        'LEGACY WORK REGRESSION TEAM'
+    )
+    RETURNING id
+)
+INSERT INTO legacy_team_work_fixture (team_id)
+SELECT id FROM created;
+
+INSERT INTO public.team_members (
+    organisation_id,
+    team_id,
+    user_id
+)
+SELECT
+    '0a316877-23d4-4dc3-b0ed-350208d68fb3',
+    team_id,
+    'f1af6f09-7032-428d-a176-7bbfa6dba747'
+FROM legacy_team_work_fixture;
+
+INSERT INTO public.team_permission_grants (
+    organisation_id,
+    team_id,
+    user_id,
+    permission_type
+)
+SELECT
+    '0a316877-23d4-4dc3-b0ed-350208d68fb3',
+    team_id,
+    'f1af6f09-7032-428d-a176-7bbfa6dba747',
+    'work'
+FROM legacy_team_work_fixture;
+
+UPDATE public.cases
+SET assigned_team_id = (
+    SELECT team_id
+    FROM legacy_team_work_fixture
+)
+WHERE id = 'c16dd5f1-8c7e-49a6-b940-0e2c3dc5f8ea'
+  AND organisation_id = '0a316877-23d4-4dc3-b0ed-350208d68fb3'
+  AND assigned_team_id IS NULL;
+
+DO $fixture$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM public.cases c
+        JOIN legacy_team_work_fixture f
+          ON f.team_id = c.assigned_team_id
+        WHERE c.id = 'c16dd5f1-8c7e-49a6-b940-0e2c3dc5f8ea'
+          AND c.organisation_id = '0a316877-23d4-4dc3-b0ed-350208d68fb3'
+    ) THEN
+        RAISE EXCEPTION
+            'FAIL: Legacy case work fixture was not established';
+    END IF;
+
+    RAISE NOTICE
+        'PASS: Legacy case assigned to authorised test team';
+END;
+$fixture$;
+
+
 INSERT INTO public.case_locks (
     case_id, organisation_id, locked_by_user_id,
     expires_at, lock_token

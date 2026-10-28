@@ -6,6 +6,42 @@
 
 BEGIN;
 
+-- TEST-ONLY EXPIRED LOCK FIXTURE
+-- Do not overwrite an existing case lock.
+-- This fixture is removed by the final ROLLBACK.
+
+DO $fixture$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM public.case_locks
+        WHERE case_id = 'c16dd5f1-8c7e-49a6-b940-0e2c3dc5f8ea'
+    ) THEN
+        RAISE EXCEPTION
+            'STOP: Existing case lock must not be overwritten';
+    END IF;
+
+    INSERT INTO public.case_locks (
+        case_id,
+        organisation_id,
+        locked_by_user_id,
+        locked_at,
+        expires_at,
+        lock_token
+    )
+    VALUES (
+        'c16dd5f1-8c7e-49a6-b940-0e2c3dc5f8ea',
+        '0a316877-23d4-4dc3-b0ed-350208d68fb3',
+        'f1af6f09-7032-428d-a176-7bbfa6dba747',
+        clock_timestamp() - interval '10 minutes',
+        clock_timestamp() - interval '5 minutes',
+        gen_random_uuid()
+    );
+
+    RAISE NOTICE 'PASS: Synthetic expired case lock created';
+END;
+$fixture$;
+
 SELECT set_config(
     'test.evidence_expired_lock_token',
     lock_token::text,

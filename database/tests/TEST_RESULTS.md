@@ -1797,3 +1797,158 @@ deployment of Migration 063.
 Earlier test results remain historical evidence and
 must not be interpreted as current database privileges
 where later migrations changed those privileges.
+
+## Test 060 — Evidence Recovery-Status Team-Work Revocation Security
+
+**Verification date:** 28 October 2026.
+
+**Environment:** Local Docker Supabase PostgreSQL database. No hosted Supabase execution.
+
+**Feature:** Evidence upload recovery-status authorisation after team-work permission revocation.
+
+**Protected function:** `public.get_case_evidence_upload_recovery_status(uuid, uuid, uuid)`.
+
+**Migration:** `database/migrations/067_operational_case_work_authorisation.sql`.
+
+**Regression source:** `database/tests/060_case_evidence_recovery_status_work_revocation_security.sql`.
+
+**Execution evidence:** `database/test-results/test060_recovery_status_work_revocation.log`.
+
+**Execution result:** PASS — PostgreSQL exit status 0; required behavioural assertions present; no logged SQL errors or failures.
+
+### Execution method
+
+The local test runner assembled a single transaction containing:
+
+1. Migration 066, with its outer `BEGIN` and `COMMIT` statements removed in memory.
+2. The current Migration 067 source.
+3. Test 044's synthetic fixture setup and integrity assertions.
+4. Test 060's authorisation, revocation and integrity assertions.
+5. An explicit outer `ROLLBACK`.
+
+Migration files and existing tests were not modified by this execution. Test 044's subsequent original assertions were intentionally excluded because Test 060 revokes the fixture employee's work permission.
+
+### Verified security assertions
+
+| Control | Recorded result |
+|---|---|
+| Authorised employee retrieves own pending recovery status | PASS |
+| Employee's team-work permission revoked while valid exclusive lock remains | PASS |
+| Revoked employee denied recovery status despite original valid lock | PASS |
+| Denial matches SQLSTATE `42501` and `Case work permission required` | PASS |
+| Exclusive lock row preserved exactly after denied request | PASS |
+| Evidence reservation row preserved exactly after denied request | PASS |
+| No additional attachment created by denied request | PASS |
+| No additional case audit event created by denied request | PASS |
+| Transaction ended with `ROLLBACK` | PASS |
+
+### Evidence integrity
+
+| Artifact | SHA-256 |
+|---|---|
+| Migration 067 | `7d32da0aa17fd2646bed48b7f5dd1c414194102b3212ac0eea05e51c077ef5f3` |
+| Test 060 | `22a8e9d8607ea95ec6fd966064b087cac05c32d585aa9292cf5cecc4454765c2` |
+| Execution log | `c991373c2b79f9a1fe5fb796ba91d8286be18dd31d17cab97ef6fb874099f929` |
+
+The execution log contains 89 lines and one recorded `ROLLBACK`. Its recorded behavioural assertions completed successfully.
+
+### Security interpretation
+
+This regression demonstrates that an existing valid exclusive lock does not override revoked team-work authorisation for the evidence recovery-status function in the tested local database transaction.
+
+The denied request did not alter the original lock or reservation, create an attachment, or create a case audit event.
+
+### Scope and limitations
+
+This is a synthetic, database-level regression test. It does not independently establish:
+
+- Hosted Supabase deployment or hosted API enforcement.
+- Browser-level behaviour after permission revocation.
+- Concurrent access or race-condition resistance.
+- Complete authorisation coverage across every Madzera function.
+- Actual Storage-object recovery or end-to-end upload recovery.
+- Independent penetration testing or regulatory certification.
+
+The test provides evidence for this specific authorisation boundary only. Earlier test results must be interpreted against their respective migration versions.
+
+**Verification classification:** Locally executed and passed; rollback confirmed; source and log fingerprints recorded.
+
+**Independent security sign-off:** Not recorded.
+
+**Production deployment approval:** Not established.
+
+## Tests 057–059 — Operational Work Revocation Security
+
+**Verification date:** 28 October 2026.
+
+**Environment:** Local Docker Supabase PostgreSQL.
+
+**Implementation:** `database/migrations/067_operational_case_work_authorisation.sql`.
+
+**Execution classification:** Local database-level security regression; not hosted or production verification.
+
+### Execution evidence
+
+| Test | Security scope | PASS markers | FAIL | ERROR | Rollback |
+|---|---|---:|---:|---:|---|
+| 057 | Case operations, evidence access and Storage RLS | 91 | 0 | 0 | Confirmed |
+| 058 | Active-lock visibility and team-work authorisation | 7 | 0 | 0 | Confirmed |
+| 059 | Evidence-reservation listing after work revocation | 8 | 0 | 0 | Confirmed |
+
+**Total:** 106 PASS markers across three executions, zero reported failures or SQL errors, and three confirmed rollbacks. PASS markers are not necessarily independent security controls.
+
+### Test 057 — Case operations and Storage RLS
+
+The recorded regression verified that revoked team-work permission prevents protected case operations, including assignment Save, case updates, comments, audit-history retrieval, evidence operations and Storage access.
+
+The tested employee's existing valid exclusive lock did not override revoked work authorisation. Denied operations preserved the relevant case, assignment, reservation, attachment, audit and lock state.
+
+The test also verified controlled session closure and removal of the employee's owned lock.
+
+**Source:** `database/tests/057_case_evidence_storage_rls_revocation_security.sql`.
+
+**Execution log:** `database/test-results/test057_regression_20261028T015920Z.log`.
+
+**Log SHA-256:** `f024d4e9248a465655628f29c2ffc70ced2f52b537bd3f456c30971075eb7a8d`.
+
+### Test 058 — Active case-lock visibility
+
+The recorded regression verified that authenticated employees see active locks only where they possess the required team-work permission.
+
+Submit/manage permissions alone did not expose active locks. An explicit second-team work grant enabled visibility, and revocation immediately removed that visibility.
+
+**Source:** `database/tests/058_active_case_lock_visibility_security.sql`.
+
+**Execution log:** `database/test-results/test058_regression_20261028T020105Z.log`.
+
+**Log SHA-256:** `24a6321a65e31ecffa498e940ed22431585efafbda7e5bb235a050de49308015`.
+
+### Test 059 — Evidence reservation listing
+
+The recorded regression verified that an authorised employee could list an owned evidence reservation while holding a valid case lock.
+
+After team-work permission was revoked, reservation listing was denied despite the original valid lock. The denial preserved the existing lock and reservation.
+
+**Source:** `database/tests/059_evidence_reservation_work_revocation_security.sql`.
+
+**Execution log:** `database/test-results/test059_regression_20261028T020156Z.log`.
+
+**Log SHA-256:** `a8c7d714f5e204313d0ccb08083f5a0b22f48cda65c0a99745079a7c9ec7713e`.
+
+### Execution method and evidence limitations
+
+Test 057 executed within its own rollback-only transaction.
+
+Tests 058 and 059 each executed in a separate outer transaction assembled from Migration 066 (transaction wrapper removed in memory), Migration 067, Test 044's synthetic fixture setup and the respective targeted test. Each transaction ended with an explicit ROLLBACK.
+
+These tests use synthetic fixtures and simulated authenticated database-role contexts. They provide evidence for the specific local security scenarios exercised.
+
+They do not independently establish hosted Supabase enforcement, authenticated HTTP API behaviour, browser-level integration, concurrency safety, independent penetration testing, regulatory certification or production deployment approval.
+
+Test 060 has a separate existing entry in this document and is not duplicated here.
+
+**Verification classification:** Locally executed and passed; rollback confirmed; log fingerprints retained.
+
+**Independent security sign-off:** Not recorded.
+
+**Production deployment approval:** Not established.

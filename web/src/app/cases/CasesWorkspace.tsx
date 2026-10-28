@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import CreateCaseForm from "./CreateCaseForm";
@@ -94,10 +94,12 @@ const inputClass =
 
 export default function CasesWorkspace() {
   const router = useRouter();
+  const creationRequestId = useRef(0);
   const [showCreateCase, setShowCreateCase] = useState(false);
   const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
   const [createdCaseReference, setCreatedCaseReference] = useState<string | null>(null);
   const [referenceLookupFailed, setReferenceLookupFailed] = useState(false);
+  const [createdCaseCanOpen, setCreatedCaseCanOpen] = useState(false);
   const [cases, setCases] = useState<QueueCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -369,6 +371,7 @@ export default function CasesWorkspace() {
               <button
                 type="button"
                 onClick={() => {
+                  creationRequestId.current += 1;
                   setCreatedCaseId(null);
                   setShowCreateCase((value) => !value);
                 }}
@@ -407,7 +410,7 @@ export default function CasesWorkspace() {
                     <p className="break-all font-mono text-sm font-medium">
                       {createdCaseReference ??
                         (referenceLookupFailed
-                          ? "Reference unavailable — open the case record"
+                          ? "Reference unavailable — please contact your organisation administrator"
                           : "Retrieving reference…")}
                     </p>
                   </div>
@@ -416,6 +419,7 @@ export default function CasesWorkspace() {
                     <button
                       type="button"
                       onClick={() => {
+                        creationRequestId.current += 1;
                         setShowCreateCase(false);
                         setCreatedCaseId(null);
                         window.location.reload();
@@ -425,25 +429,63 @@ export default function CasesWorkspace() {
                       Return to Case Queue
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/cases/${createdCaseId}`)}
-                      className="rounded border border-[#D8CBB8] px-4 py-2 text-sm"
-                    >
-                      Open Case Record
-                    </button>
+                    {createdCaseCanOpen && (
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/cases/${createdCaseId}`)}
+                        className="rounded border border-[#D8CBB8] px-4 py-2 text-sm"
+                      >
+                        Open Case Record
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
                 <CreateCaseForm
-                  onCancel={() => setShowCreateCase(false)}
+                  onCancel={() => {
+                    creationRequestId.current += 1;
+                    setShowCreateCase(false);
+                  }}
                   onCreated={(caseId, origin) => {
+                    const requestId = ++creationRequestId.current;
+                    const isCurrentRequest = () =>
+                      creationRequestId.current === requestId;
+
                     setCreatedCaseId(caseId);
                     setCreatedCaseReference(null);
                     setReferenceLookupFailed(false);
+                    setCreatedCaseCanOpen(false);
                     setActiveBasket(origin);
 
                     void (async () => {
+                      try {
+                        const { data, error } = await supabase.rpc(
+                          "get_case_submission_receipt",
+                          { p_case_id: caseId }
+                        );
+                        if (error) throw error;
+
+                        const receipt = (
+                          (data ?? []) as Array<{
+                            case_id: string;
+                            case_reference: string;
+                            created_at: string;
+                          }>
+                        ).find((row) => row.case_id === caseId);
+
+                        if (!receipt?.case_reference) {
+                          throw new Error("Submission receipt unavailable");
+                        }
+
+                        if (isCurrentRequest()) {
+                          setCreatedCaseReference(receipt.case_reference);
+                        }
+                      } catch {
+                        if (isCurrentRequest()) {
+                          setReferenceLookupFailed(true);
+                        }
+                      }
+
                       try {
                         const { data, error } = await supabase.rpc(
                           "get_case_queue"
@@ -451,18 +493,28 @@ export default function CasesWorkspace() {
                         if (error) throw error;
 
                         const rows = (data ?? []) as QueueRow[];
-                        const created = rows.find(
-                          (row) => row.case_id === caseId
-                        );
-                        if (!created?.case_reference) {
-                          throw new Error("Created case reference not found");
-                        }
 
-                        setCreatedCaseReference(created.case_reference);
-                        setCases(rows.map(mapQueueRow));
-                        setLoadError(null);
+                        if (isCurrentRequest()) {
+                          setCases(rows.map(mapQueueRow));
+                          setLoadError(null);
+                        }
                       } catch {
-                        setReferenceLookupFailed(true);
+                        // Queue refresh failure does not determine work access.
+                      }
+
+                      try {
+                        const { data, error } = await supabase.rpc(
+                          "can_work_on_case",
+                          { p_case_id: caseId }
+                        );
+                        if (error) throw error;
+                        if (isCurrentRequest()) {
+                          setCreatedCaseCanOpen(data === true);
+                        }
+                      } catch {
+                        if (isCurrentRequest()) {
+                          setCreatedCaseCanOpen(false);
+                        }
                       }
                     })();
                   }}

@@ -724,3 +724,106 @@ certification, or hosted deployment of Migration 063.
 
 Earlier sections describe historical database states and must
 be interpreted in light of subsequent migrations and dated updates.
+
+## 21. Operational Case Work Authorisation — 28 October 2026
+
+**Environment:** Local Docker Supabase PostgreSQL.
+
+**Implementation:** Migration 067 — `067_operational_case_work_authorisation.sql`.
+
+**Security objective:** Require effective organisation-scoped team-work authorisation for protected operational case activities, including where an employee already holds an exclusive case lock.
+
+**Evidence classification:** Selected local database regression tests passed. Hosted and production enforcement not established.
+
+### Security requirements and verification
+
+| ID | Security requirement | Evidence | Status |
+|---|---|---|---|
+| WORK-01 | Effective work permission is required for protected case operations | Tests 045–057; Test 057 execution | PASS — local scenarios |
+| WORK-02 | Existing exclusive lock does not override revoked work permission | Test 057 | PASS — local |
+| WORK-03 | Revoked work permission prevents assignment Save | Test 057 | PASS — local |
+| WORK-04 | Revoked work permission prevents protected case updates | Test 057 | PASS — local |
+| WORK-05 | Revoked work permission prevents case comment creation and retrieval | Test 057 | PASS — local |
+| WORK-06 | Revoked work permission prevents protected audit-history retrieval | Test 057 | PASS — local |
+| WORK-07 | Revoked work permission prevents evidence retrieval and download-path access | Test 057 | PASS — local |
+| WORK-08 | Revoked work permission prevents evidence upload preparation and finalisation | Test 057 | PASS — local |
+| WORK-09 | Storage RLS prevents revoked employee uploads and downloads in tested scenarios | Test 057 | PASS — local |
+| WORK-10 | Denied operations preserve case, assignment, reservation, attachment and audit state | Test 057 | PASS — local |
+| WORK-11 | Revoked employee cannot resume or renew protected case session | Test 057 | PASS — local |
+| WORK-12 | Revoked employee can safely close an owned session and release its lock | Test 057 | PASS — local |
+| WORK-13 | Active-lock visibility requires appropriate work permission | Test 058 | PASS — local |
+| WORK-14 | Submit/manage permissions alone do not expose active locks | Test 058 | PASS — local |
+| WORK-15 | Revoking second-team work permission removes active-lock visibility | Test 058 | PASS — local |
+| WORK-16 | Evidence-reservation listing requires effective work permission | Test 059 | PASS — local |
+| WORK-17 | Reservation-listing denial preserves existing lock and reservation | Test 059 | PASS — local |
+| WORK-18 | Evidence recovery-status access is denied after work revocation despite a valid lock | Test 060 | PASS — local |
+| WORK-19 | Recovery-status denial preserves lock, reservation, attachment and audit state | Test 060 | PASS — local |
+| WORK-20 | All 16 Migration 067 functions have independent behavioural coverage | Function reference inventory, Step 3065 | NOT ESTABLISHED |
+| WORK-21 | Existing locking and Save behaviour is regression-verified through the frontend | Not yet verified end-to-end | PENDING |
+| WORK-22 | Real authenticated HTTP API access and denial are verified | Not yet verified | PENDING |
+| WORK-23 | Browser-level permission revocation is verified | Not yet verified | PENDING |
+| WORK-24 | Concurrent lock, revocation and evidence operations are verified | Not yet verified | PENDING |
+| WORK-25 | Hosted migration installation and post-deployment controls are verified | Not established | PENDING |
+| WORK-26 | Independent security assessment and production approval are completed | Not established | PENDING |
+
+### Retained regression execution evidence
+
+| Test | Scope | PASS markers | FAIL | ERROR | Rollback |
+|---|---|---:|---:|---:|---|
+| 057 | Case operations and Storage RLS | 91 | 0 | 0 | Confirmed |
+| 058 | Active-lock visibility | 7 | 0 | 0 | Confirmed |
+| 059 | Evidence-reservation listing | 8 | 0 | 0 | Confirmed |
+| 060 | Evidence recovery-status access | 10 | 0 | 0 | Confirmed |
+
+**Combined result:** 116 PASS markers, zero reported failures, zero SQL errors and four confirmed rollbacks across four recorded executions.
+
+PASS markers are test output observations, not a count of independently audited security controls.
+
+The retained logs are:
+
+- `database/test-results/test057_regression_20261028T015920Z.log`
+- `database/test-results/test058_regression_20261028T020105Z.log`
+- `database/test-results/test059_regression_20261028T020156Z.log`
+- `database/test-results/test060_recovery_status_work_revocation.log`
+
+The SHA-256 fingerprints and execution details are recorded in `TEST_RESULTS.md`.
+
+### Function coverage and interpretation
+
+Migration 067 contains 16 function definitions.
+
+Test 057 references 13 of those functions. Tests 058, 059 and 060 reference the remaining three:
+
+- `get_active_case_locks`
+- `list_employee_case_evidence_upload_reservations`
+- `get_case_evidence_upload_recovery_status`
+
+A function reference is not proof of complete behavioural coverage. Tests 045–056 contain additional regression scenarios, but this section does not claim fresh execution of every one of those tests.
+
+### Architecture and compatibility requirements
+
+Madzera's permission model is organisation-specific. Teams and work grants must not depend on universal hardcoded department names or a fixed organisational hierarchy.
+
+Operational case access must remain tenant-scoped and must respect the distinction between `submit`, `work` and `manage` permissions.
+
+Existing automatic exclusive locking, lock renewal, Save/claim assignment, audit attribution and controlled session closure must be preserved.
+
+The local tests demonstrate selected database security boundaries. They do not establish complete frontend compatibility.
+
+### Scope and limitations
+
+These results derive from local PostgreSQL transactions with synthetic fixtures and simulated authenticated database roles.
+
+They do not independently establish:
+
+- Hosted Supabase deployment or security configuration.
+- End-to-end authenticated HTTP API enforcement.
+- Browser-level behaviour after permission revocation.
+- Concurrency and race-condition resistance.
+- Independent penetration testing.
+- PAS 41201 certification or regulatory compliance.
+- Formal production release approval.
+
+The earlier Section 20 findings remain historical. This dated section adds evidence for subsequent Migration 067 controls without retrospectively changing the earlier assessment.
+
+**Verification classification:** Selected local database controls passed; production acceptance remains open.

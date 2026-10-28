@@ -1,0 +1,85 @@
+BEGIN
+CREATE FUNCTION
+REVOKE
+GRANT
+COMMENT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+=== TEST044: SELECT AUTHENTICATED EMPLOYEE FIXTURES ===
+CREATE TABLE
+GRANT
+INSERT 0 1
+DO
+=== TEST044: CREATE ISOLATED TEAMS ===
+UPDATE 1
+UPDATE 1
+UPDATE 1
+=== TEST044: CREATE ISOLATED CASES ===
+UPDATE 1
+UPDATE 1
+UPDATE 1
+=== TEST044: ESTABLISH MEMBERSHIP AND GRANTS ===
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+=== TEST044: VERIFY FIXTURE INTEGRITY ===
+DO
+=== TEST059: CREATE VALID LOCK AND RESERVATION ===
+CREATE TABLE
+GRANT
+DO
+=== TEST059: AUTHORISED RESERVATION LISTING ===
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+=== TEST059: REVOKE WORK WITHOUT RELEASING LOCK ===
+DO
+=== TEST059: VERIFY IMMEDIATE ACCESS DENIAL ===
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+=== TEST059: VERIFY LOCK AND RESERVATION SURVIVED ===
+DO
+=== TEST059: COMPLETE ===
+ROLLBACK
+
+NOTICE:  PASS: Multi-organisation authenticated identities selected
+NOTICE:  PASS: Isolated teams, cases, memberships and grants established
+NOTICE:  PASS: Valid case lock and owned reservation created
+NOTICE:  PASS: Work-authorised employee lists owned reservation
+NOTICE:  PASS: Work permission revoked; original lock and reservation retained
+NOTICE:  PASS: Revoked work permission denies reservation listing despite valid lock
+NOTICE:  PASS: Denial preserves original lock and reservation
+NOTICE:  PASS: TEST059 behavioural assertions completed

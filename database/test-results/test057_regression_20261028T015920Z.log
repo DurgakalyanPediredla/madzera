@@ -1,0 +1,311 @@
+BEGIN
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+SET
+CREATE TABLE
+GRANT
+INSERT 0 1
+DO
+UPDATE 1
+DO
+DO
+UPDATE 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+DO
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+DO
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+DO
+CREATE TABLE
+GRANT
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+SET
+DO
+RESET
+DO
+              set_config              
+--------------------------------------
+ dc36ef25-8ff9-4845-857c-2a191ecc2b4a
+(1 row)
+
+SET
+DO
+RESET
+DO
+DO
+              set_config              
+--------------------------------------
+ 1f998562-e90d-42a2-9c73-906f1ded614a
+(1 row)
+
+SET
+DO
+RESET
+DO
+DO
+              set_config              
+--------------------------------------
+ 33e98afb-f3fd-44ad-89b1-4bb88b20e37d
+(1 row)
+
+SET
+DO
+RESET
+DO
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+CREATE TABLE
+GRANT
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+SELECT 1
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+SELECT 1
+DO
+DO
+DO
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+DO
+SELECT 5
+DO
+SELECT 1
+SELECT 2
+SELECT 5
+SELECT 5
+DO
+SELECT 5
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+DO
+DO
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+SELECT 1
+CREATE TABLE
+GRANT
+              set_config              
+--------------------------------------
+ cd9c949c-8c81-42db-88a2-e08091866ed0
+(1 row)
+
+SET
+DO
+RESET
+DO
+ROLLBACK
+
+NOTICE:  PASS: Dynamic session security fixtures selected
+NOTICE:  PASS: Distinct rollback-only administrator identity created
+NOTICE:  PASS: Separate administrator provisioned and audited without work permission
+NOTICE:  PASS: Three organisation-scoped teams and cases created
+NOTICE:  PASS: Separate team memberships established without administrator membership
+NOTICE:  PASS: Worker, cross-team submitter and administrator permissions isolated
+NOTICE:  PASS: Authorised Team A worker acquired exclusive case session
+NOTICE:  PASS: Submit-only employee denied Team A operational session
+NOTICE:  PASS: Submit-only denial preserved existing exclusive lock
+NOTICE:  PASS: Organisation administrator denied operational session
+NOTICE:  PASS: Administrator denial preserved authorised employee lock
+NOTICE:  PASS: Organisation B worker denied Organisation A case session
+NOTICE:  PASS: Cross-organisation denial created no case lock
+NOTICE:  PASS: Team A worker denied Team B operational session
+NOTICE:  PASS: Cross-team denial preserved existing lock isolation
+NOTICE:  PASS: Authorised employee resumed existing session
+NOTICE:  PASS: Authorised employee renewed existing session
+NOTICE:  PASS: Session continuity preserved exclusive lock identity
+NOTICE:  PASS: Completed evidence fixture created under postgres
+NOTICE:  PASS: Authorised employee retrieved locked case
+NOTICE:  PASS: Authorised employee created internal comment
+NOTICE:  PASS: Authorised employee retrieved internal comment
+NOTICE:  PASS: Authorised employee retrieved attributed audit history
+NOTICE:  PASS: Authorised employee evidence retrieval permitted
+NOTICE:  PASS: Authorised employee retrieved completed evidence download path
+NOTICE:  PASS: Authorised employee prepared evidence upload
+NOTICE:  PASS: Authorised employee executed Save RPC
+NOTICE:  PASS: Authorised case status and priority updated
+NOTICE:  PASS: Unauthorised team transfer denied
+NOTICE:  PASS: Destination team removal denied
+NOTICE:  PASS: Authorised and isolated case work access
+NOTICE:  PASS: Updated case values and destination team verified
+NOTICE:  PASS: Save assignment, audit and lock verified as postgres
+NOTICE:  PASS: Authorised comment and audit verified
+NOTICE:  PASS: Authorised and revoked finalisation fixtures prepared
+NOTICE:  PASS: Original exclusive lock verified by postgres
+NOTICE:  PASS: Protected Storage paths prepared by postgres
+NOTICE:  PASS: Completed evidence Storage metadata prepared by postgres
+NOTICE:  PASS: Authorised Storage operation object.get_authenticated returned 1 objects
+NOTICE:  PASS: Authorised Storage operation object.get_authenticated_info returned 1 objects
+NOTICE:  PASS: Authorised Storage operation object.list returned 0 objects
+NOTICE:  PASS: Authorised Storage operation object.delete returned 0 objects
+NOTICE:  PASS: Dedicated authorised INSERT reservation prepared
+NOTICE:  PASS: Authenticated reserved Storage INSERT succeeded
+NOTICE:  PASS: Authorised employee can upload reserved evidence
+NOTICE:  PASS: Authorised employee can download completed evidence
+NOTICE:  PASS: Authorised employee finalised evidence
+NOTICE:  PASS: Authorised finalisation reservation completed
+NOTICE:  PASS: Exactly one attributed attachment verified
+NOTICE:  PASS: Exactly one evidence audit event verified
+NOTICE:  PASS: Revocation reservation and exclusive lock preserved
+NOTICE:  PASS: Dedicated revoked INSERT reservation prepared
+NOTICE:  PASS: Authorised upload reservation recorded before revocation
+NOTICE:  PASS: Pending finalisation and integrity baseline captured
+NOTICE:  PASS: Exactly one active-session work grant revoked
+NOTICE:  PASS: Revoked employee denied case details despite valid lock
+NOTICE:  PASS: Revoked Save rejected with SQLSTATE 42501
+NOTICE:  PASS: Revoked employee case update denied
+NOTICE:  PASS: Revoked employee comment denied
+NOTICE:  PASS: Revoked employee comment retrieval denied
+NOTICE:  PASS: Revoked employee audit-history retrieval denied
+NOTICE:  PASS: Revoked employee evidence retrieval denied
+NOTICE:  PASS: Revoked employee download-path retrieval denied
+NOTICE:  PASS: Revoked employee upload preparation denied
+NOTICE:  PASS: Revoked employee evidence finalisation denied
+NOTICE:  PASS: Revoked case work permission denied immediately
+NOTICE:  PASS: Original exclusive lock remains valid after revocation
+NOTICE:  PASS: Revoked Storage operation object.get_authenticated returned 0 objects
+NOTICE:  PASS: Revoked Storage operation object.get_authenticated_info returned 0 objects
+NOTICE:  PASS: Revoked Storage operation object.list returned 0 objects
+NOTICE:  PASS: Revoked Storage operation object.delete returned 0 objects
+NOTICE:  PASS: Revoked Storage INSERT rejected by RLS with SQLSTATE 42501
+NOTICE:  PASS: Revoked Storage INSERT created no object
+NOTICE:  PASS: Revoked team-work permission denies Storage upload
+NOTICE:  PASS: Revoked team-work permission denies Storage download
+NOTICE:  PASS: Valid exclusive lock does not bypass Storage revocation
+NOTICE:  PASS: Revoked upload preparation preserved reservation records
+NOTICE:  PASS: Revoked finalisation preserved pending reservation
+NOTICE:  PASS: Revoked finalisation created no attachment
+NOTICE:  PASS: Revoked finalisation created no audit event
+NOTICE:  PASS: Revoked finalisation preserved exclusive lock
+NOTICE:  PASS: Revoked comment preserved comment records
+NOTICE:  PASS: Revoked update preserved case state
+NOTICE:  PASS: Revoked Save preserved assignment, audit and lock
+NOTICE:  PASS: Revoked employee denied session resume
+NOTICE:  PASS: Revoked employee denied session renewal
+NOTICE:  PASS: Revocation denials preserved exclusive lock unchanged
+NOTICE:  PASS: Revoked employee safely closed owned session
+NOTICE:  PASS: Duplicate session closure rejected safely
+NOTICE:  PASS: Safe exit removed exclusive case lock
+NOTICE:  PASS: Exactly one employee-attributed exit audit recorded
