@@ -590,13 +590,33 @@ export default function CaseWorkspace({
           }
         }
       } catch {
-        setLeaveError(
-          "Unable to verify outstanding evidence uploads. " +
-            "Please retry before leaving this case."
-        );
-        leavingRef.current = false;
-        setCheckingEvidenceBeforeLeave(false);
-        return;
+        // Work-permission revocation blocks evidence reservation discovery.
+        // It must not prevent the existing owner-verified lock release.
+        let workPermissionUnavailable = false;
+
+        try {
+          const { data, error } = await supabase.rpc("can_work_on_case", {
+            p_case_id: caseId,
+          });
+
+          workPermissionUnavailable = !error && data === false;
+        } catch {
+          workPermissionUnavailable = false;
+        }
+
+        if (!workPermissionUnavailable) {
+          setLeaveError(
+            "Unable to verify outstanding evidence uploads. " +
+              "Please retry before leaving this case."
+          );
+          leavingRef.current = false;
+          setCheckingEvidenceBeforeLeave(false);
+          return;
+        }
+
+        // Outstanding reservations cannot be inspected after access loss.
+        // They are not modified. Navigation still requires successful
+        // close_case_session verification below.
       }
     }
 

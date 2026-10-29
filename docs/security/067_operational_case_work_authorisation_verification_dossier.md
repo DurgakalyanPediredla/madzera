@@ -1015,6 +1015,96 @@ The required test is:
 **Status:** Pending browser-level verification.
 Do not claim this path is end-to-end validated.
 
+### 8.9A R067-01 corrective implementation and local regression verification
+
+**Evidence update date:** 29 October 2026.
+
+**Change classification:** Narrowly scoped frontend corrective implementation;
+local behavioural regression verification; database security regression
+re-execution. This addendum supplements the earlier Section 8.9 assessment
+without replacing the historical baseline.
+
+**Issue addressed:** The original normal Back workflow blocked navigation
+when evidence-upload reservation discovery failed. After effective team-work
+permission was revoked, reservation discovery could be denied even while the
+employee retained a valid exclusive lock that the database permitted them
+to close safely.
+
+**Corrective implementation:** In
+`web/src/app/cases/[caseId]/CaseWorkspace.tsx`, the `handleBack()` reservation
+discovery exception path now calls `can_work_on_case` for the current case.
+Only an error-free, explicit `false` result permits progression to the
+existing session-release pathway. A `true` result, RPC error, thrown
+exception or unexpected result retains the existing fail-closed navigation
+block. Successful navigation still requires the existing session-release
+function to return success.
+
+An explicit `false` result does not independently establish that permission
+revocation caused the reservation-listing failure. The existing backend
+lock-owner, organisation, identity and token checks remain the authority
+for actual release. The change does not grant evidence visibility, resolve
+reservations, modify Save assignment or alter lock acquisition and renewal
+mechanics.
+
+**Frontend regression evidence:**
+
+- Test source:
+  `web/tests/case-exit-permission-revocation.test.cjs`.
+- Execution:
+  `node --test web/tests/case-exit-permission-revocation.test.cjs`.
+- Recorded result: six tests passed, zero failed, on 29 October 2026.
+- Covered scenarios: normal exit; unresolved-reservation cancellation;
+  revoked-work-permission fallback and successful release; unexpected
+  reservation error while work permission remains valid; failed permission
+  verification; and unsuccessful release preventing navigation.
+- The harness extracts and executes the actual `handleBack()` function
+  using mocked dependencies. This is not a browser integration test and
+  does not execute actual authenticated HTTP requests.
+
+**Database regression evidence:**
+
+- Test source:
+  `database/tests/042_team_work_session_authorisation_security.sql`.
+- Execution environment: local Docker container
+  `supabase_db_madzera`, PostgreSQL database `postgres`.
+- Execution command: `docker exec -i supabase_db_madzera psql -X -P
+  pager=off -v ON_ERROR_STOP=1 -U postgres -d postgres <
+  database/tests/042_team_work_session_authorisation_security.sql`.
+- Recorded result: exit code 0; 27 reported PASS assertions; no reported
+  FAIL or ERROR assertions; transaction ended with `ROLLBACK`.
+- Verified scenarios include immediate denial of session resume and
+  renewal after work-permission revocation, continued safe release by
+  the legitimate lock owner, duplicate-closure rejection, removal of
+  the exclusive lock and exactly one employee-attributed exit audit.
+- This is a local SQL-level test, not a browser-to-database end-to-end test.
+
+**Additional verification:** TypeScript type checking and the Next.js
+production build passed after the frontend change. ESLint reported zero
+errors and one existing React hook dependency warning. The tracked source
+diff was confined to `CaseWorkspace.tsx` at the time of inspection.
+
+**Remaining limitations and risks:**
+
+1. Browser-level reproduction and verification of permission revocation
+   during an active case session remain pending under WORK-23 and G067-04.
+2. Real authenticated HTTP RPC and evidence-reservation state verification
+   remain pending; mocked frontend behaviour and direct SQL execution
+   must not be represented as an end-to-end integration result.
+3. The existing release lifecycle stops renewal and expiry timers before
+   `close_case_session` confirms release. A failed release can therefore
+   leave the page active without its normal renewal timer. This is a
+   separately identified lifecycle risk requiring targeted assessment;
+   the R067-01 correction does not change that behaviour.
+4. Full frontend locking, Save and reassignment compatibility verification
+   remains pending under WORK-21 and G067-02.
+5. No hosted deployment, independent security approval or production
+   acceptance is established by this addendum.
+
+**Risk disposition:** R067-01 remains OPEN, with corrective implementation
+and focused local regression evidence recorded. The original Section 9.3
+risk description represents the pre-correction assessment and must be
+read together with this addendum. Production release remains NOT APPROVED.
+
 ### 8.10 Compatibility evidence matrix
 
 | Behaviour | Source review | Local SQL evidence | Frontend integration |
@@ -1151,7 +1241,7 @@ accepted by a production security authority.
 
 | ID | Risk | Provisional severity | Evidence | Status |
 |---|---|---|---|---|
-| R067-01 | Frontend Back navigation may be blocked after work-permission revocation | High | Potential integration gap; database safe release locally tested | OPEN |
+| R067-01 | Frontend Back navigation after work-permission revocation requires end-to-end verification | High | Corrective frontend implementation; six local Node tests PASS; SQL Test 042 PASS with ROLLBACK; browser verification pending | OPEN |
 | R067-02 | Concurrent revocation and protected operation may expose a timing race | High | Concurrency tests not established | OPEN |
 | R067-03 | Authenticated HTTP RPC behaviour may differ from direct SQL regression scenarios | High | Local SQL PASS; HTTP testing pending | OPEN |
 | R067-04 | Real Storage API upload/download behaviour may differ from local Storage RLS assertions | High | Local RLS PASS; API testing pending | OPEN |
@@ -1188,11 +1278,24 @@ blocked normal navigation and operational disruption.
 **Existing control:** Test 057 reports successful
 database-level safe release after revocation.
 
-**Required mitigation:** Execute a browser-level
-revocation-and-exit test. If reproduced, implement
-a narrowly scoped safe-exit path without restoring
-protected evidence visibility or bypassing reservation
-integrity safeguards.
+**Mitigation implemented:** A narrowly scoped frontend
+safe-exit fallback now permits progression to the existing
+owner-verified release pathway only when `can_work_on_case`
+returns an error-free, explicit `false`. The fallback does
+not restore protected evidence visibility or modify
+unresolved evidence reservations.
+
+**Verification completed:** Six focused frontend Node
+regression tests passed. Local SQL Test 042 passed with
+transaction rollback, including safe owned-lock release,
+duplicate-release rejection and exit-audit attribution.
+
+**Verification outstanding:** Reproduce and verify the
+revocation-and-exit sequence in a browser using authenticated
+HTTP requests, including reservation integrity and
+before/after lock and audit state. Assess the separate
+failed-release timer lifecycle concern recorded in
+Section 8.9A.
 
 **Acceptance:** Revoked employee can safely leave;
 owned lock is released; exit audit is attributed;
@@ -1201,7 +1304,7 @@ case and evidence operations remain denied.
 
 **Owner:** Application engineering and security review.
 
-**Status:** OPEN — potential, not confirmed.
+**Status:** OPEN — corrective implementation and focused local tests passed; browser-level acceptance and formal risk closure pending.
 
 ### 9.4 R067-02 — Concurrent authorisation changes
 
